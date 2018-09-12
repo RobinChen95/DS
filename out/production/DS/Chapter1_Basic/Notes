@@ -1,0 +1,10 @@
+JAVA一般使用静态方法编辑自己的库，并且可以在每个类中添加main()方法泳衣测试各类用例。
+JAVA引用外部jar一般import下面的子包
+停止输入流可以用command+d实现
+Github不允许上传超过50MB的文件，过大会出错
+JAVA当中也有泛型，用于实现模版API
+停止输入流可以用command+d实现
+可以在类的声明中加入<anything>,例如public class Bag<Item> implements Iterable<Item> {},即可在该类的方法中调用。
+目前还没有掌握使用Github云同步Windows与macOS代码的操作。
+interface当中可以声明虚拟方法，不用声明public或者private
+训练了循环队列，链表，背包
