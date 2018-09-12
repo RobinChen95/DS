@@ -8,3 +8,4 @@ JAVA当中也有泛型，用于实现模版API
 目前还没有掌握使用Github云同步Windows与macOS代码的操作。
 interface当中可以声明虚拟方法，不用声明public或者private
 训练了循环队列，链表，背包
+gitignore可以用于忽略配置文件与编译文件
