@@ -1,4 +1,4 @@
-package LeetCode;
+package LeetCode.primary_level;
 //一个循环队列
 class MyCircularQueue {
     private int[] queue;
