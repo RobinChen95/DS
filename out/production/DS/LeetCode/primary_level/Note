@@ -1,0 +1,1 @@
+写好if...else if的逻辑关系很重要，全用if容易使数组越界，详见Insertion*；
