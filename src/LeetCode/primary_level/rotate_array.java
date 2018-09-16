@@ -11,7 +11,7 @@ public class rotate_array {
     }
 
     public int[] rotate(int[] arr, int k){
-        if (arr.length == (0|1)) return arr;
+
         for(int i=0;i<(arr.length-k)/2;i++){
             swap(arr,i,arr.length-k-i-1);
         }
