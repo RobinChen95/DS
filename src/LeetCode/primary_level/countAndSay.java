@@ -39,6 +39,12 @@ public class countAndSay {
     }
     public String countAndSay(int n) {
         int count = 1;
-        while ()
+        String init = "1";
+        while (count<=n){
+            String str = new String();
+            for (int i=0;i<init.length();i++){
+
+            }
+        }
     }
 }
