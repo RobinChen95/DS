@@ -1,6 +1,7 @@
-package LeetCode.primary_level;
+package LeetCode.primary_level.ArraysAndString;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class unique {
     public int firstUniqChar(String s) {

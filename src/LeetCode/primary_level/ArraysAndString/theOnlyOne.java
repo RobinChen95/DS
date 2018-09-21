@@ -1,4 +1,4 @@
-package LeetCode.primary_level;
+package LeetCode.primary_level.ArraysAndString;
 
 public class theOnlyOne {
     public int singleNumber(int[] nums) {

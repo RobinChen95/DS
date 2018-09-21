@@ -1,4 +1,4 @@
-package LeetCode.primary_level;
+package LeetCode.primary_level.ArraysAndString;
 
 public class reverseString {
     public String reverseString(String s) {

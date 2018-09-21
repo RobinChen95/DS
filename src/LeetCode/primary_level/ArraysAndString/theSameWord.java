@@ -1,6 +1,6 @@
-package LeetCode.primary_level;
+package LeetCode.primary_level.ArraysAndString;
 
-import java.util.*;
+import java.util.HashMap;
 
 public class theSameWord {
     public boolean isAnagram(String s, String t) {

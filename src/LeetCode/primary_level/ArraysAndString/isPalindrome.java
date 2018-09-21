@@ -1,7 +1,6 @@
-package LeetCode.primary_level;
+package LeetCode.primary_level.ArraysAndString;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 
 public class isPalindrome {
     public static void main(String args[]){
