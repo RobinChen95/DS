@@ -4,7 +4,7 @@ import java.util.*;
 
 public class q3_SubQueue {
     public static void main(String args[]){
-        int[] array = {9,4,3,2,5,4,3,2};
+        int[] array = {9,5,6,7,4,3,5,4,2};
         q3_SubQueue q3 = new q3_SubQueue();
         System.out.println(Arrays.toString(q3.subArray(array,array.length)));
     }
