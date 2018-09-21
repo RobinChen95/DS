@@ -1,7 +1,10 @@
 # DS
 
-Using Algorithms Forth Edition.
+Using Algorithms Forth Edition And leetcode.com.
 
-By MacOS High Sierra10.13.6 and intellij IDEA.
+cooperative developed by
 
-Implements data structure, sorting, searching and graph.
+Windows10 using intellij IDEA.
+MacOS High Sierra using intellij IDEA.
+
+Implements base algorithms, data structure, sorting, searching and graph.
