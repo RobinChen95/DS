@@ -17,7 +17,6 @@ public class removeLastN {
             curnode = curnode.next;
         }
 
-        
         if (curnode==null)
             return prenode.next;
 
