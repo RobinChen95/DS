@@ -86,7 +86,7 @@ public class hanoi {
 
             System.out.print("               ");
             if (i>count){
-                
+
             }
             System.out.print("|");//print c |，总共15行|
             if (i>count){
