@@ -31,7 +31,7 @@ public class hanoi {
     }
 
     public static void main(String args[]) {
-        hanoi hi = new hanoi(5);
+        hanoi hi = new hanoi(8);
         for (int i = 0; i < hi.getTimes(); i++) {
             System.out.println(i + 1);
             hi.init(101);
@@ -57,6 +57,7 @@ public class hanoi {
                 for (int j=0;j<chipOfA[ptr];j++){//退格以便打印
                     System.out.print("\b");
                 }
+                //System.out.print("退格："+cishu+"次");
                 for (int j=0;j<chipOfA[ptr];j++){
                     System.out.print("-");
                 }
