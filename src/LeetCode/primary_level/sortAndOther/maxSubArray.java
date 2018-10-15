@@ -20,4 +20,5 @@ public class maxSubArray {
         maxSubArray ms = new maxSubArray();
         System.out.println(ms.maxSubArray(a));
     }
+
 }
