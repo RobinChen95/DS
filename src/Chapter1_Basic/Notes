@@ -11,3 +11,4 @@ interface当中可以声明虚拟方法，不用声明public或者private
 gitignore可以用于忽略配置文件与编译文件
 需要将数组循环移位的时候，可以通过交换实现
 可以利用public static方法定义类的静态变量，可以看作该类的全局变量，import该类之后就可以使用。
+Collection的对象要用foreach来遍历集合对象，因为它实现了iterator遍历函数而不能用get方法
