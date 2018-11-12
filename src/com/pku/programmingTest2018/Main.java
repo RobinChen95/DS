@@ -1,28 +1,137 @@
 package com.pku.programmingTest2018;
 
-public class Main {
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 
-    public final static String TopicName = "topicTest";
+public class Main {
 
     public static void main(String[] args) throws Exception {
         Producer producer = new Producer();
         Consumer consumer = new Consumer();
-
-        for (int i = 0; i < 3; i++) {
-            // 将一串字符串 "Message Content"转为byte数组并赋给data引用
-            byte[] data = ("Message Content " + i).getBytes();
-            Message message = producer.createBytesMessageToTopic(TopicName, data);
-            //将message通过producer对象的send方法，发送出去
-            // *************第一处 开始 *****************
-            producer.send(message);
-            // *************第一处 结束 *****************
+        List<String> topics = new ArrayList<>();
+        for (int j = 0; j < 10; j++) {
+            String topic = "topic " + j;
+            // 把字符串topic加入队列中
+            // **********第一处 开始 **********
+            topics.add(topic);
+            // **********第一处 结束 **********
+            byte[] data = (topic + " " + j).getBytes();
+            Message msg = producer.createBytesMessageToTopic(topic, data);
+            producer.send(msg);
         }
-        // 绑定consumer对应的topic名字
-        consumer.attachQueue("1", TopicName);
 
-        // 遍历该consumer订阅的topic中的所有消息
-        while (consumer.poll() != null);
+        consumer.attachQueue("1", topics);
+        while (consumer.poll()!=null);
+    }
+}
 
+
+class Producer {
+    public Message createBytesMessageToTopic(String topic, byte[] body) {
+        String content = new String(body);
+        Message msg = new Message(topic, content);
+        return msg;
+    }
+
+    // 将message发送出去
+    public void send(Message msg) {
+        System.out.println("发送了消息：" + msg.getTopic());
+        Store.store.push(msg);
+    }
+}
+
+class Consumer {
+    List<String> topics = new LinkedList<>();
+    //记录上一次读取的位置
+    int readPos = 0;
+    String queue;
+
+
+    public void attachQueue(String queueName, Collection<String> t) throws Exception {
+        if (queue != null) {
+            throw new Exception("只允许绑定一次");
+        }
+        queue = queueName;
+        // 将消费者订阅的topics进行绑定
+        // **********第二处 开始 **********
+
+        // **********第二处 结束 **********
+    }
+
+    // 每次消费读取一个message
+    public Message poll() {
+        Message re = null;
+        // 先读第一个topic, 再读第二个topic...
+        // 直到所有topic都读完了, 返回null, 表示无消息
+        for (int i = 0; i < topics.size(); i++) {
+            int index = (i + readPos) % topics.size();
+            re = Store.store.pull(queue, topics.get(index));
+            if (re != null) {
+                System.out.println("拿到了消息：" + re.getTopic());
+                //在index基础上，更改readPos的值，+1
+                // **********第三处 开始 **********
+
+                // **********第三处 结束 **********
+                break;
+            }
+        }
+        return re;
+    }
+}
+
+class Store {
+    static final Store store = new Store();
+
+    // 消息存储，每个topic对应一个ArrayList
+    HashMap<String, ArrayList<Message>> msgs = new HashMap<>();
+    // 遍历指针，记录每个queue与topic的组合读取message的位置
+    HashMap<String, Integer> readPos = new HashMap<>();
+
+    public void push(Message msg) {
+        if (msg == null) {
+            return;
+        }
+        String topic = msg.getTopic();
+        if (!msgs.containsKey(topic)) {
+            //HashMap中还未出现过该topic，创建一个ArrayList给该topic
+            // **********第四处 开始 **********
+
+            // **********第四处 结束 **********
+        }
+        // 往该msg对应的topic的List里面加入消息
+        // **********第五处 开始 **********
+
+        // **********第五处 结束 **********
+
+    }
+
+    public Message pull(String queue, String topic) {
+        //k表示一个queue和一个topic的组合
+        String k = queue + " " + topic;
+        if (!readPos.containsKey(k)) {
+            readPos.put(k, 0);
+        }
+        int pos = readPos.get(k);
+        if (!msgs.containsKey(topic)) {
+            return null;
+        }
+        // 获取topic对应的ArrayList对象list
+        // **********第六处 开始 **********
+
+        // **********第六处 结束 **********
+        if (list.size() <= pos) {
+            return null;
+        } else {
+            Message msg = list.get(pos);
+            // 将键k对应的值更新，表示当前读到第pos个msg，下一次应该读第+1个
+            // **********第七处 开始 **********
+
+            // **********第七处 结束 **********
+            return msg;
+        }
     }
 }
 
@@ -46,97 +155,10 @@ class Message {
         this.content = content;
     }
 
-    // Message的构造函数，将参数赋给成员变量
     public Message(String topic, String content) {
-        // **********第二处 开始**********
-        setTopic(topic);
-        setContent(content);
-        // **********第二处 结束**********
+        this.topic = topic;
+        this.content = content;
     }
 
-}
-
-class Producer {
-    public Message createBytesMessageToTopic(String topic, byte[] body) {
-        // 将传入的body字节数组转成String类型，并且和传入的topic一起生成一个Message对象msg，并返回
-        // **********第三处 开始************
-        Message msg = new Message(topic, new String(body));
-        return msg;
-        // **********第三处 结束************
-    }
-
-    //每次执行发送一个message
-    public void send(Message msg) {
-        // 具体的实现发送消息的操作，由Store类中push方法执行
-        Store.store.push(msg);
-    }
-}
-
-class Consumer {
-    String topic;
-    String queue;
-
-    public void attachQueue(String queueName, String topicName) throws Exception {
-        if (queue != null) {
-            throw new Exception("只允许绑定一次");
-        }
-        // 将消费者与queue和订阅的topic进行绑定
-        // **********第四处 开始************
-        this.topic=topicName;
-        this.queue=queueName;
-        // **********第四处 结束************
-    }
-
-    // 每次消费读取一个message
-    public Message poll() {
-        Message re = null;
-        // 具体的实现拉消息的操作，由Store类中pull方法执行
-        re = Store.store.pull(queue, topic);
-        return re;
-    }
-}
-
-class Store {
-    // 保证共用一个Store对象来访问String数组
-    static final Store store = new Store();
-    //声明了一个长度位3的字符串数组，用来存放message中的content内容
-    String[] topics = new String[3];
-    int pushIndex = 0;
-    int pullIndex = 0;
-
-    //每次只push一条消息
-    public void push(Message msg) {
-        if (msg == null || pushIndex >= topics.length) {
-            return;
-        }
-        String topic = msg.getTopic();
-        //找到指定的topic才能定位发送，这里只有一个topic类型，涉及多个topic类型时就需要做区分
-        if (topic.equals(Main.TopicName)) {
-            //获取msg的content内容，将它依此赋值到topics数组，注意index的操作
-            // **********第五处 开始************
-            topics[pushIndex++]=msg.getContent();
-            // **********第五处 结束************
-            System.out.println("存储了消息:" + msg.getContent());
-        }
-    }
-    //每次只从String数组中pull一条msg，并返回
-    public Message pull(String queue, String topic) {
-        if (pullIndex >= topics.length) {
-            System.out.println("已读取完该topic所有消息");
-            return null;
-        }
-        // 找到指定的topic数组
-        if (topic.equals(Main.TopicName)) {
-            // 传入topic并且依此遍历String数组中获取的内容，每次构造生成一个新的Message对象
-            // **********第六处 开始************
-            Message msg = new Message(topic,topics[pullIndex++]);
-            // **********第六处 结束************
-            System.out.println("读取到消息:" + msg.getContent());
-            return msg;
-        } else {
-            System.out.println("找不到该topic");
-            return null;
-        }
-    }
 }
 
