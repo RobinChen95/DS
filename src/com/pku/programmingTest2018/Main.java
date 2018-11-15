@@ -1,54 +1,292 @@
 package com.pku.programmingTest2018;
 
-<<<<<<< HEAD
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+/***
+ * 第三次作业，考察多线程知识点
+ */
 public class Main {
+    // 每个pusher向每个topic发送的消息数目
+    static int PUSH_COUNT = 100;
+    // 发送消息的线程数
+    static int PUSH_THREAD_COUNT = 4;
+    // 发送线程往n个topic发消息
+    static int PUSH_TOPIC_COUNT = 10;
+    // 消费消息的线程数
+    static int PULL_THREAD_COUNT = 4;
+    // 每个消费者消费的topic数量
+    static int PULL_TOPIC_COUNT = 10;
+    // topic数量
+    static int TOPIC_COUNT = 20;
+    // 统计push/pull消息的数量
+    static AtomicInteger pushCount = new AtomicInteger();
+    static AtomicInteger pullCount = new AtomicInteger();
+    static Random rand = new Random(100);
 
     public static void main(String[] args) throws Exception {
-        Producer producer = new Producer();
-        Consumer consumer = new Consumer();
-        List<String> topics = new ArrayList<>();
-        for (int j = 0; j < 10; j++) {
-            String topic = "topic " + j;
-            // 把字符串topic加入队列中
-            // **********第一处 开始 **********
-            topics.add(topic);
-            // **********第一处 结束 **********
-            byte[] data = (topic + " " + j).getBytes();
-            Message msg = producer.createBytesMessageToTopic(topic, data);
-            producer.send(msg);
-        }
-
-        consumer.attachQueue("1", topics);
-        while (consumer.poll()!=null);
-=======
-import java.util.HashMap;
-import java.util.Set;
-
-public class Main {
-
-    public static void main(String[] args) {
-        byte[] body = "this is body".getBytes();
-        KeyValue keyValue = new KeyValue();
-        keyValue.put("MESSAGE_ID", 123456);
-        keyValue.put("TOPIC", "Java");
-        keyValue.put("BORN_TIMESTAMP", 1234567890123457890l);
-        keyValue.put("PI", 3.1415926535897932384626433832795d);
-        ByteMessage byteMessage = new ByteMessage(body);
-        byteMessage.setHeaders(keyValue);
-        System.out.println(byteMessage.headers().getInt("MESSAGE_ID"));
-        System.out.println(byteMessage.headers().getLong("BORN_TIMESTAMP"));
-        System.out.println(byteMessage.headers().getDouble("PI"));
-        System.out.println(byteMessage.headers().getString("TOPIC"));
+        testPush();
+        testPull();
     }
 
+    static void testPush() throws Exception {
+        // topic的名字是topic+序号的形式
+        System.out.println("开始push");
+
+        ArrayList<Thread> pushers = new ArrayList<>();
+        for (int i = 0; i < PUSH_THREAD_COUNT; i++) {
+            // 随机选择连续的topic
+            ArrayList<String> tops = new ArrayList<>();
+            int start = rand.nextInt(TOPIC_COUNT);
+            for (int j = 0; j < PUSH_TOPIC_COUNT; j++) {
+                int v = (start + j) % TOPIC_COUNT;
+                tops.add("topic" + Integer.toString(v));
+            }
+            // 用参数tops和i创建一个PushTester实例，将该实例作为参数创建一个线程t，将线程t启动运行
+            // *********** 第一处 开始 ***********
+
+            // *********** 第一处 结束 ***********
+            pushers.add(t);
+        }
+        for (int i = 0; i < pushers.size(); i++) {
+            // 从pushers list集合中拿到第i个线程，并执行join方法
+            // *********** 第二处 开始 ***********
+
+            // *********** 第二处 结束 ***********
+        }
+
+        System.out.println(String.format("push 结束  push count %d", pushCount.get()));
+    }
+
+    static void testPull() throws Exception {
+        System.out.println("开始pull");
+        int queue = 0;
+        ArrayList<Thread> pullers = new ArrayList<>();
+        for (int i = 0; i < PULL_THREAD_COUNT; i++) {
+            // 随机选择topic
+            ArrayList<String> tops = new ArrayList<>();
+            int start = rand.nextInt(TOPIC_COUNT);
+            for (int j = 0; j < PULL_TOPIC_COUNT; j++) {
+                int v = (start + j) % TOPIC_COUNT;
+                tops.add("topic" + Integer.toString(v));
+            }
+            Thread t = new Thread(new PullTester(Integer.toString(queue), tops));
+            queue++;
+            t.start();
+            pullers.add(t);
+        }
+        for (int i = 0; i < pullers.size(); i++) {
+            pullers.get(i).join();
+        }
+
+        System.out.println(String.format("pull 结束  pull count %d", pullCount.get()));
+    }
+
+    static class PushTester implements Runnable {
+        // 随机向以下topic发送消息
+        List<String> topics = new ArrayList<>();
+        Producer producer = new Producer();
+        int id;
+
+        PushTester(List<String> t, int id) {
+            topics.addAll(t);
+            this.id = id;
+            StringBuilder sb = new StringBuilder();
+            sb.append(String.format("producer%d push to:", id));
+            for (int i = 0; i < t.size(); i++) {
+                sb.append(t.get(i) + " ");
+            }
+            System.out.println(sb.toString());
+        }
+
+        @Override
+        public void run() {
+            try {
+                for (int i = 0; i < topics.size(); i++) {
+                    String topic = topics.get(i);
+                    for (int j = 0; j < PUSH_COUNT; j++) {
+                        // topic加j作为数据部分
+                        // j是序号, 在consumer中会用来校验顺序
+                        byte[] data = (topic + " " + id + " " + j).getBytes();
+                        ByteMessage msg = producer.createBytesMessageToTopic(topics.get(i), data);
+                        // 设置一个header
+                        msg.putHeaders("SEARCH_KEY", "hello");
+                        // producer发送msg消息,pushCount自增1个数
+                        // *********** 第三处 开始 ***********
+
+
+                        // *********** 第三处 结束 ***********
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+    }
+
+    static class PullTester implements Runnable {
+        // 拉消息
+        String queue;
+        List<String> topics = new ArrayList<>();
+        Consumer consumer = new Consumer();
+
+        public PullTester(String s, ArrayList<String> tops) throws Exception {
+            queue = s;
+            topics.addAll(tops);
+            consumer.attachQueue(s, tops);
+
+            StringBuilder sb = new StringBuilder();
+            sb.append(String.format("queue%s attach:", s));
+            for (int i = 0; i < topics.size(); i++) {
+                sb.append(topics.get(i) + " ");
+            }
+            System.out.println(sb.toString());
+        }
+
+        @Override
+        public void run() {
+            try {
+                // 检查顺序, 保存每个topic-producer对应的序号, 新获得的序号必须严格+1
+                HashMap<String, Integer> posTable = new HashMap<>();
+                while (true) {
+                    // consumer执行拉取一个消息，并赋值给ByteMessage的msg对象
+                    // *********** 第四处 开始 ***********
+
+                    // *********** 第四处 结束 ***********
+                    if (msg == null) {
+                        return;
+                    } else {
+                        byte[] data = msg.getBody();
+                        String str = new String(data);
+                        String[] strs = str.split(" ");
+                        String topic = strs[0];
+                        String prod = strs[1];
+                        int j = Integer.parseInt(strs[2]);
+                        String mapkey = topic + " " + prod;
+                        if (!posTable.containsKey(mapkey)) {
+                            posTable.put(mapkey, 0);
+                        }
+                        //校验顺序
+                        if (j != posTable.get(mapkey)) {
+                            System.out.println(String.format("数据错误 topic %s 序号:%d", topic, j));
+                            System.exit(0);
+                        }
+                        //校验头部
+                        if (!msg.headers().getString("SEARCH_KEY").equals("hello")) {
+                            System.out.println(String.format("header错误 topic %s 序号:%d", topic, j));
+                            System.exit(0);
+                        }
+                        posTable.put(mapkey, posTable.get(mapkey) + 1);
+                        pullCount.incrementAndGet();
+
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+    }
 }
-//消息的实现
+
+class Producer {
+    public ByteMessage createBytesMessageToTopic(String topic, byte[] body) {
+        ByteMessage msg = new ByteMessage(body);
+        // 将topic赋给msg的header部分，key值叫"TOPIC"，并返回msg
+        // *********** 第五处 开始 ***********
+
+        // *********** 第五处 结束 ***********
+    }
+
+    // 将message发送出去
+    public void send(ByteMessage msg) {
+        Store.store.push(msg);
+    }
+}
+
+class Consumer {
+    List<String> topics = new LinkedList<>();
+    // 记录上一次读取的位置
+    int readPos = 0;
+    String queue;
+
+    // 将消费者订阅的topic进行绑定
+    public void attachQueue(String queueName, Collection<String> t) throws Exception {
+        if (queue != null) {
+            throw new Exception("只允许绑定一次");
+        }
+        queue = queueName;
+        topics.addAll(t);
+    }
+
+    // 每次消费读取一个message
+    public ByteMessage poll() {
+        ByteMessage re = null;
+        // 先读第一个topic, 再读第二个topic...
+        // 直到所有topic都读完了, 返回null, 表示无消息
+        for (int i = 0; i < topics.size(); i++) {
+            int index = (i + readPos) % topics.size();
+            re = Store.store.pull(queue, topics.get(index));
+            if (re != null) {
+                readPos = index + 1;
+                break;
+            }
+        }
+        return re;
+    }
+}
+
+class Store {
+    static final Store store = new Store();
+
+    // 消息存储
+    HashMap<String, ArrayList<ByteMessage>> msgs = new HashMap<>();
+    // 遍历指针
+    HashMap<String, Integer> readPos = new HashMap<>();
+
+    // 同步执行push方法，防止多个线程同时访问互斥资源
+    // *********** 第六处 开始 ***********
+    public void push(ByteMessage msg) {
+        // *********** 第六处 结束 ***********
+        if (msg == null) {
+            return;
+        }
+        String topic = msg.headers().getString("TOPIC");
+        if (!msgs.containsKey(topic)) {
+            msgs.put(topic, new ArrayList<>());
+        }
+        msgs.get(topic).add(msg);
+
+    }
+
+    public synchronized ByteMessage pull(String queue, String topic) {
+        // k表示一个queue和一个topic的组合
+        String k = queue + " " + topic;
+        if (!readPos.containsKey(k)) {
+            readPos.put(k, 0);
+        }
+        int pos = readPos.get(k);
+        if (!msgs.containsKey(topic)) {
+            return null;
+        }
+        ArrayList<ByteMessage> list = msgs.get(topic);
+        if (list.size() <= pos) {
+            return null;
+        } else {
+            ByteMessage msg = list.get(pos);
+            readPos.put(k, pos + 1);
+            return msg;
+        }
+    }
+}
+
+// 消息的实现
 class ByteMessage {
 
     private KeyValue headers = new KeyValue();
@@ -60,23 +298,8 @@ class ByteMessage {
 
     public ByteMessage(byte[] body) {
         this.body = body;
->>>>>>> 258f0ef533b082cb189ce0416ea25a7995127cf8
     }
 
-<<<<<<< HEAD
-
-class Producer {
-    public Message createBytesMessageToTopic(String topic, byte[] body) {
-        String content = new String(body);
-        Message msg = new Message(topic, content);
-        return msg;
-    }
-
-    // 将message发送出去
-    public void send(Message msg) {
-        System.out.println("发送了消息：" + msg.getTopic());
-        Store.store.push(msg);
-=======
     public byte[] getBody() {
         return body;
     }
@@ -90,9 +313,7 @@ class Producer {
     }
 
     public ByteMessage putHeaders(String key, int value) {
-        //********** 第一处 开始 **********
-        headers.put(key,value);
-        //********** 第一处 结束 **********
+        headers.put(key, value);
         return this;
     }
 
@@ -113,8 +334,7 @@ class Producer {
 
 }
 
-
-//一个Key-Value的实现类
+// 一个Key-Value的实现类
 class KeyValue {
     private final HashMap<String, Object> kvs = new HashMap<>();
 
@@ -124,47 +344,8 @@ class KeyValue {
 
     public HashMap<String, Object> getMap() {
         return kvs;
->>>>>>> 258f0ef533b082cb189ce0416ea25a7995127cf8
     }
 
-<<<<<<< HEAD
-class Consumer {
-    List<String> topics = new LinkedList<>();
-    //记录上一次读取的位置
-    int readPos = 0;
-    String queue;
-
-
-    public void attachQueue(String queueName, Collection<String> t) throws Exception {
-        if (queue != null) {
-            throw new Exception("只允许绑定一次");
-        }
-        queue = queueName;
-        // 将消费者订阅的topics进行绑定
-        // **********第二处 开始 **********
-
-        // **********第二处 结束 **********
-    }
-
-    // 每次消费读取一个message
-    public Message poll() {
-        Message re = null;
-        // 先读第一个topic, 再读第二个topic...
-        // 直到所有topic都读完了, 返回null, 表示无消息
-        for (int i = 0; i < topics.size(); i++) {
-            int index = (i + readPos) % topics.size();
-            re = Store.store.pull(queue, topics.get(index));
-            if (re != null) {
-                System.out.println("拿到了消息：" + re.getTopic());
-                //在index基础上，更改readPos的值，+1
-                // **********第三处 开始 **********
-
-                // **********第三处 结束 **********
-                break;
-            }
-        }
-        return re;
-=======
     public KeyValue put(String key, int value) {
         kvs.put(key, value);
         return this;
@@ -176,9 +357,7 @@ class Consumer {
     }
 
     public KeyValue put(String key, double value) {
-        //********** 第二处 开始 **********
-        kvs.put(key,value);
-        //********** 第二处 结束 **********
+        kvs.put(key, value);
         return this;
     }
 
@@ -192,9 +371,7 @@ class Consumer {
     }
 
     public long getLong(String key) {
-        //********** 第三处 开始 **********
-        return (Long)kvs.getOrDefault(key,0);
-        //********** 第三处 结束 **********
+        return (Long) kvs.getOrDefault(key, 0L);
     }
 
     public double getDouble(String key) {
@@ -207,91 +384,9 @@ class Consumer {
 
     public Set<String> keySet() {
         return kvs.keySet();
->>>>>>> 258f0ef533b082cb189ce0416ea25a7995127cf8
     }
 
-<<<<<<< HEAD
-class Store {
-    static final Store store = new Store();
-
-    // 消息存储，每个topic对应一个ArrayList
-    HashMap<String, ArrayList<Message>> msgs = new HashMap<>();
-    // 遍历指针，记录每个queue与topic的组合读取message的位置
-    HashMap<String, Integer> readPos = new HashMap<>();
-
-    public void push(Message msg) {
-        if (msg == null) {
-            return;
-        }
-        String topic = msg.getTopic();
-        if (!msgs.containsKey(topic)) {
-            //HashMap中还未出现过该topic，创建一个ArrayList给该topic
-            // **********第四处 开始 **********
-
-            // **********第四处 结束 **********
-        }
-        // 往该msg对应的topic的List里面加入消息
-        // **********第五处 开始 **********
-
-        // **********第五处 结束 **********
-
-    }
-
-    public Message pull(String queue, String topic) {
-        //k表示一个queue和一个topic的组合
-        String k = queue + " " + topic;
-        if (!readPos.containsKey(k)) {
-            readPos.put(k, 0);
-        }
-        int pos = readPos.get(k);
-        if (!msgs.containsKey(topic)) {
-            return null;
-        }
-        // 获取topic对应的ArrayList对象list
-        // **********第六处 开始 **********
-
-        // **********第六处 结束 **********
-        if (list.size() <= pos) {
-            return null;
-        } else {
-            Message msg = list.get(pos);
-            // 将键k对应的值更新，表示当前读到第pos个msg，下一次应该读第+1个
-            // **********第七处 开始 **********
-
-            // **********第七处 结束 **********
-            return msg;
-        }
-=======
     public boolean containsKey(String key) {
         return kvs.containsKey(key);
->>>>>>> 258f0ef533b082cb189ce0416ea25a7995127cf8
     }
 }
-
-class Message {
-    private String topic;
-    private String content;
-
-    public String getTopic() {
-        return topic;
-    }
-
-    public void setTopic(String topic) {
-        this.topic = topic;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
-    }
-
-    public Message(String topic, String content) {
-        this.topic = topic;
-        this.content = content;
-    }
-
-}
-
