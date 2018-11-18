@@ -48,15 +48,16 @@ public class Main {
                 tops.add("topic" + Integer.toString(v));
             }
             // 用参数tops和i创建一个PushTester实例，将该实例作为参数创建一个线程t，将线程t启动运行
-            // *********** 第一处 开始 ***********
-
+            // *********** 第一处 开始 **********
+            Thread t = (new Thread(new PushTester(tops,i)));
+            t.start();
             // *********** 第一处 结束 ***********
             pushers.add(t);
         }
         for (int i = 0; i < pushers.size(); i++) {
             // 从pushers list集合中拿到第i个线程，并执行join方法
             // *********** 第二处 开始 ***********
-
+            pushers.get(i).join();
             // *********** 第二处 结束 ***********
         }
 
@@ -118,8 +119,8 @@ public class Main {
                         msg.putHeaders("SEARCH_KEY", "hello");
                         // producer发送msg消息,pushCount自增1个数
                         // *********** 第三处 开始 ***********
-
-
+                        producer.send(msg);
+                        pushCount.getAndIncrement();
                         // *********** 第三处 结束 ***********
                     }
                 }
@@ -157,7 +158,7 @@ public class Main {
                 while (true) {
                     // consumer执行拉取一个消息，并赋值给ByteMessage的msg对象
                     // *********** 第四处 开始 ***********
-
+                    ByteMessage msg = consumer.poll();
                     // *********** 第四处 结束 ***********
                     if (msg == null) {
                         return;
@@ -200,7 +201,8 @@ class Producer {
         ByteMessage msg = new ByteMessage(body);
         // 将topic赋给msg的header部分，key值叫"TOPIC"，并返回msg
         // *********** 第五处 开始 ***********
-
+        msg.headers().put("TOPIC",topic);
+        return msg;
         // *********** 第五处 结束 ***********
     }
 
@@ -252,7 +254,7 @@ class Store {
 
     // 同步执行push方法，防止多个线程同时访问互斥资源
     // *********** 第六处 开始 ***********
-    public void push(ByteMessage msg) {
+    public synchronized void push(ByteMessage msg) {
         // *********** 第六处 结束 ***********
         if (msg == null) {
             return;
