@@ -1,5 +1,11 @@
 package com.pku.programmingTest2018;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -8,8 +14,9 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+
 /***
- * 第三次作业，考察多线程知识点
+ * 第四次作业，考察IO知识点
  */
 public class Main {
     // 每个pusher向每个topic发送的消息数目
@@ -27,10 +34,16 @@ public class Main {
     // 统计push/pull消息的数量
     static AtomicInteger pushCount = new AtomicInteger();
     static AtomicInteger pullCount = new AtomicInteger();
-    static Random rand = new Random(100);
+    static Random rand = new Random(1000);
 
     public static void main(String[] args) throws Exception {
-        testPush();
+        File file = new File("data");
+        if(file.exists())
+            //删除data文件，初始化环境
+            //********** 第一处 **********
+            file.delete();
+            //********** 第一处 **********
+            testPush();
         testPull();
     }
 
@@ -48,17 +61,13 @@ public class Main {
                 tops.add("topic" + Integer.toString(v));
             }
             // 用参数tops和i创建一个PushTester实例，将该实例作为参数创建一个线程t，将线程t启动运行
-            // *********** 第一处 开始 **********
-            Thread t = (new Thread(new PushTester(tops,i)));
+            Thread t = new Thread(new PushTester(tops, i));
             t.start();
-            // *********** 第一处 结束 ***********
             pushers.add(t);
         }
         for (int i = 0; i < pushers.size(); i++) {
             // 从pushers list集合中拿到第i个线程，并执行join方法
-            // *********** 第二处 开始 ***********
             pushers.get(i).join();
-            // *********** 第二处 结束 ***********
         }
 
         System.out.println(String.format("push 结束  push count %d", pushCount.get()));
@@ -115,15 +124,15 @@ public class Main {
                         // j是序号, 在consumer中会用来校验顺序
                         byte[] data = (topic + " " + id + " " + j).getBytes();
                         ByteMessage msg = producer.createBytesMessageToTopic(topics.get(i), data);
-                        // 设置一个header
-                        msg.putHeaders("SEARCH_KEY", "hello");
+
                         // producer发送msg消息,pushCount自增1个数
-                        // *********** 第三处 开始 ***********
                         producer.send(msg);
-                        pushCount.getAndIncrement();
-                        // *********** 第三处 结束 ***********
+                        pushCount.incrementAndGet();
                     }
                 }
+                //新增处，producer的flush方法，如果使用了缓存写，为了将缓存中剩余部分写完
+                //*************************
+                producer.flush();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -157,9 +166,7 @@ public class Main {
                 HashMap<String, Integer> posTable = new HashMap<>();
                 while (true) {
                     // consumer执行拉取一个消息，并赋值给ByteMessage的msg对象
-                    // *********** 第四处 开始 ***********
                     ByteMessage msg = consumer.poll();
-                    // *********** 第四处 结束 ***********
                     if (msg == null) {
                         return;
                     } else {
@@ -173,16 +180,13 @@ public class Main {
                         if (!posTable.containsKey(mapkey)) {
                             posTable.put(mapkey, 0);
                         }
-                        //校验顺序
+                        // 校验顺序
                         if (j != posTable.get(mapkey)) {
-                            System.out.println(String.format("数据错误 topic %s 序号:%d", topic, j));
+                            System.out.println(mapkey + "=" + posTable.get(mapkey));
+                            System.out.println(String.format("数据错误  %s 序号:%d", topic, j));
                             System.exit(0);
                         }
-                        //校验头部
-                        if (!msg.headers().getString("SEARCH_KEY").equals("hello")) {
-                            System.out.println(String.format("header错误 topic %s 序号:%d", topic, j));
-                            System.exit(0);
-                        }
+
                         posTable.put(mapkey, posTable.get(mapkey) + 1);
                         pullCount.incrementAndGet();
 
@@ -200,15 +204,17 @@ class Producer {
     public ByteMessage createBytesMessageToTopic(String topic, byte[] body) {
         ByteMessage msg = new ByteMessage(body);
         // 将topic赋给msg的header部分，key值叫"TOPIC"，并返回msg
-        // *********** 第五处 开始 ***********
-        msg.headers().put("TOPIC",topic);
+        msg.putHeaders("TOPIC", topic);
         return msg;
-        // *********** 第五处 结束 ***********
     }
 
     // 将message发送出去
     public void send(ByteMessage msg) {
         Store.store.push(msg);
+    }
+
+    public void flush() throws Exception {
+        System.out.println("flush");
     }
 }
 
@@ -230,61 +236,88 @@ class Consumer {
     // 每次消费读取一个message
     public ByteMessage poll() {
         ByteMessage re = null;
-        // 先读第一个topic, 再读第二个topic...
-        // 直到所有topic都读完了, 返回null, 表示无消息
-        for (int i = 0; i < topics.size(); i++) {
-            int index = (i + readPos) % topics.size();
-            re = Store.store.pull(queue, topics.get(index));
-            if (re != null) {
-                readPos = index + 1;
-                break;
-            }
-        }
+        //re = Store.store.pull(queue, topics);
         return re;
     }
+
 }
 
 class Store {
     static final Store store = new Store();
-
-    // 消息存储
-    HashMap<String, ArrayList<ByteMessage>> msgs = new HashMap<>();
-    // 遍历指针
-    HashMap<String, Integer> readPos = new HashMap<>();
+    File file = new File("data");
+    OutputStream out;
+    InputStream in;
+    //给每个consumer对应一个流
+    HashMap<String, InputStream> inMap = new HashMap<String, InputStream>();
 
     // 同步执行push方法，防止多个线程同时访问互斥资源
-    // *********** 第六处 开始 ***********
     public synchronized void push(ByteMessage msg) {
-        // *********** 第六处 结束 ***********
         if (msg == null) {
             return;
         }
-        String topic = msg.headers().getString("TOPIC");
-        if (!msgs.containsKey(topic)) {
-            msgs.put(topic, new ArrayList<>());
+        //获取topic
+        //********** 第二处 **********
+        byte[] body = msg.getBody();
+        String str = new String(body);
+        String[] strs = str.split(" ");
+        String topic = strs[0];
+        //********** 第二处 **********
+        try {
+            if (out == null)
+                out = new FileOutputStream(file, true);
+            //写一个byte，表示body和topic的长度+2
+            //********** 第三处 *********
+            body = new byte[body.length+2];
+            topic = new String(topic+2);
+            //********** 第三处 **********
+            out.write((byte) topic.getBytes().length);
+            out.write(topic.getBytes());
+            out.write((byte) msg.getBody().length);
+            out.write(msg.getBody());
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        msgs.get(topic).add(msg);
 
     }
 
-    public synchronized ByteMessage pull(String queue, String topic) {
-        // k表示一个queue和一个topic的组合
-        String k = queue + " " + topic;
-        if (!readPos.containsKey(k)) {
-            readPos.put(k, 0);
-        }
-        int pos = readPos.get(k);
-        if (!msgs.containsKey(topic)) {
-            return null;
-        }
-        ArrayList<ByteMessage> list = msgs.get(topic);
-        if (list.size() <= pos) {
-            return null;
-        } else {
-            ByteMessage msg = list.get(pos);
-            readPos.put(k, pos + 1);
+    public synchronized ByteMessage pull(String queue, List<String> topics) {
+        try {
+            if (!inMap.containsKey(queue))
+                inMap.put(queue, new FileInputStream(file));
+            //每个queue都有一个InputStream
+            //********** 第四处 **********
+            in = inMap.get(queue);
+            //********** 第四处 **********
+            if (in.available() ==0) {
+                return null;
+            }
+            byte[] byteTopic;
+            byte[] body;
+            //每次循环读一个message的数据量
+            do {
+                byte lenTotal = (byte) in.read();
+                //读到文件尾了，则lenTotal为-1
+                if(lenTotal==-1)
+                    return null;
+                byte[] byteTotal = new byte[lenTotal];
+                in.read(byteTotal);
+                byte lenTopic = byteTotal[0];
+                byteTopic = new byte[lenTopic];
+                System.arraycopy(byteTotal, 1, byteTopic, 0, lenTopic);
+                body = new byte[lenTotal - 2 - lenTopic];
+                //读取body部分内容，存入body数组
+                //********** 第五处 **********
+                in.read(body);
+                //********** 第五处 **********
+            } while (!topics.contains(new String(byteTopic)));
+
+            ByteMessage msg = new ByteMessage(body);
             return msg;
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+        return null;
+
     }
 }
 
