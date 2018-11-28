@@ -25,7 +25,7 @@ public class intersect {
             result[k]=al.get(k);
         }
         long endTime = System.nanoTime();
-        System.out.println("intersect1执行时间：");
+        System.out.println("我的执行时间：");
         System.out.println(endTime-startTime+"ns");
         return result;
     }
@@ -50,13 +50,13 @@ public class intersect {
             for(Integer e: res)
                 ans[i++] = e;
             long endTime = System.nanoTime();
-            System.out.println("insert3的执行时间：");
+            System.out.println("进仔的执行时间：");
             System.out.println(endTime-startTime+"ns");
             return ans;
         }
 
 
-    //github上的最佳解法
+    //leetcode上的最佳解法，此解法可能不是最佳
     public int[] intersect2(int[] nums1, int[] nums2) {
         long startTime = System.nanoTime();
         if(nums1.length == 0 || nums2.length == 0)   {
@@ -83,7 +83,7 @@ public class intersect {
             ret[i] = ret1[i];
         }
         long endTime = System.nanoTime();
-        System.out.println("intersect2执行时间：");
+        System.out.println("leetcode的执行时间：");
         System.out.println(endTime-startTime+"ns");
         return ret;
 
