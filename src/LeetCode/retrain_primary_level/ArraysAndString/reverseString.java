@@ -13,6 +13,7 @@ public class reverseString {
         return sb.reverse().toString();
     }
 
+    //第三种解法
     public String reverseString3(String s){
         char[] str = s.toCharArray();
         for (int i = 0; i < s.length()/2; i++) {
