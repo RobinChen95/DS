@@ -1,7 +1,8 @@
 package LeetCode.retrain_primary_level.ArraysAndString;
 
-import java.util.HashMap;
 import java.util.HashSet;
+
+/*检查一个9x9的数独是否有效*/
 
 public class isValidSudoku {
     //此解法即为最佳解法
