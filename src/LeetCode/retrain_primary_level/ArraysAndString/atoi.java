@@ -48,6 +48,7 @@ import java.util.ArrayList;
 public class atoi {
     public int myAtoi(String str) {
 
+        return 0;
     }
 
     public static void main(String[] args) {
