@@ -1,8 +1,0 @@
-1、在Long类型转换为int类型时，用强制转换有时候会出错，见plusOne。
-2、java访问二维数组的方式，其中borad为二维数组：
-     for (int i = 0; i < board.length; i++) {
-          for (int j = 0; j < board[i].length; j++) {
-
-          }
-      }
-
