@@ -1,11 +1,4 @@
-# DS
+# 有关Java语言的一切内容
 
-Using Algorithms Forth Edition And leetcode.com.
-
-Cooperative developed by:
-Windows10 using intellij IDEA.
-MacOS High Sierra using intellij IDEA.
-
-Implements base algorithms, data structure, sorting, searching and graph.
-
-Last repository "DStraining" has been deleted because of confliction.
+<p>包含Leetcode练习、各种算法与数据结构的Java实现、北大Java课程大项目功能的实现</p>
+<p>上一个仓库DStraining已经因为冲突被删除</p>
