@@ -1,10 +1,12 @@
-package ChenGQ;
+package pku;
+
+import java.io.Serializable;
 
 /**
  * 字节消息接口
  *
  */
-public interface ByteMessage {
+public interface ByteMessage extends Serializable {
 
     //设置消息头
     void setHeaders(KeyValue headers);

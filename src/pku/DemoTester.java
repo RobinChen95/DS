@@ -1,4 +1,4 @@
-package ChenGQ;
+package pku;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class DemoTester {
     //每个pusher向每个topic发送的消息数目
-    static int PUSH_COUNT = 100;
+    static int PUSH_COUNT = 400000;
     //发送消息的线程数
     static int PUSH_THREAD_COUNT = 4;
     //发送线程往n个topic发消息
@@ -57,7 +57,10 @@ public class DemoTester {
                         byte[] data = (topic +" "+id + " " + j).getBytes();
                         ByteMessage msg = producer.createBytesMessageToTopic(topics.get(i), data);
                         //设置一个header
-                        msg.putHeaders(MessageHeader.SEARCH_KEY, "hello");
+                        msg.putHeaders("SearchKey", "hello");
+                        msg.putHeaders("77",1);
+                        msg.putHeaders("777",1l);
+                        msg.putHeaders("7777",1.0d);
                         //发送消息
                         producer.send(msg);
                         pushCount.incrementAndGet();
@@ -115,7 +118,19 @@ public class DemoTester {
                             System.out.println(String.format("数据错误 topic %s 序号:%d", topic, j));
                             System.exit(0);
                         }
-                        if (!msg.headers().getString(MessageHeader.SEARCH_KEY).equals("hello")) {
+                        if (!msg.headers().getString("SearchKey").equals("hello")) {
+                            System.out.println(String.format("header错误 topic %s 序号:%d", topic, j));
+                            System.exit(0);
+                        }
+                        if (!(msg.headers().getInt("77")==1)) {
+                            System.out.println(String.format("header错误 topic %s 序号:%d", topic, j));
+                            System.exit(0);
+                        }
+                        if (!(msg.headers().getLong("777")==1l)) {
+                            System.out.println(String.format("header错误 topic %s 序号:%d", topic, j));
+                            System.exit(0);
+                        }
+                        if (!(msg.headers().getDouble("7777")==1.0d)) {
                             System.out.println(String.format("header错误 topic %s 序号:%d", topic, j));
                             System.exit(0);
                         }

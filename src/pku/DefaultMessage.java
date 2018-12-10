@@ -1,9 +1,14 @@
-package ChenGQ;
+package pku;
+
+import java.io.Serializable;
+import java.nio.ByteBuffer;
 
 /**
  *消息的实现
  */
-public class DefaultMessage implements ByteMessage {
+
+//在此处添加了序列化信息
+public class DefaultMessage implements ByteMessage, Serializable {
 
     private KeyValue headers = new DefaultKeyValue();
     private byte[] body;

@@ -1,6 +1,8 @@
-package ChenGQ;
+package pku;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 
 public class fileReader {
     // 阅读文件，需要修改读取的文件名

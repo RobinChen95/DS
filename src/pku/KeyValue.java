@@ -1,5 +1,6 @@
-package ChenGQ;
+package pku;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Set;
 
@@ -7,7 +8,7 @@ import java.util.Set;
  * Key-Value接口
  * 代表key-value的映射, key为String类型, value的类型只有四种:int long double String
  */
-public interface KeyValue {
+public interface KeyValue extends Serializable {
 
     public Object getObj(String key);
 
