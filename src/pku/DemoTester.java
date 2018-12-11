@@ -1,5 +1,11 @@
 package pku;
 
+import pku.ByteMessage;
+import pku.Consumer;
+import pku.MessageHeader;
+import pku.Producer;
+
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -12,7 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class DemoTester {
     //每个pusher向每个topic发送的消息数目
-    static int PUSH_COUNT = 400000;
+    static int PUSH_COUNT = 400;
     //发送消息的线程数
     static int PUSH_THREAD_COUNT = 4;
     //发送线程往n个topic发消息
@@ -57,15 +63,19 @@ public class DemoTester {
                         byte[] data = (topic +" "+id + " " + j).getBytes();
                         ByteMessage msg = producer.createBytesMessageToTopic(topics.get(i), data);
                         //设置一个header
-                        msg.putHeaders("SearchKey", "hello");
-                        msg.putHeaders("77",1);
-                        msg.putHeaders("777",1l);
-                        msg.putHeaders("7777",1.0d);
+                        msg.putHeaders(MessageHeader.SEARCH_KEY, "hello");
+                        //设置一个header
+                        msg.putHeaders(MessageHeader.MESSAGE_ID, j);
+                        //设置一个header
+                        msg.putHeaders(MessageHeader.BORN_TIMESTAMP, 1L);
+                        //设置一个header
+                        msg.putHeaders(MessageHeader.SHARDING_KEY, 1.0d);
                         //发送消息
                         producer.send(msg);
                         pushCount.incrementAndGet();
                     }
                 }
+                System.out.println(String.format("thread pull %s",topics.size()*PUSH_COUNT));
                 producer.flush();
             }catch (Exception e){
                 e.printStackTrace();
@@ -106,6 +116,7 @@ public class DemoTester {
                     } else {
                         byte[] data = msg.getBody();
                         String str = new String(data);
+
                         String[] strs = str.split(" ");
                         String topic = strs[0];
                         String prod = strs[1];
@@ -115,23 +126,26 @@ public class DemoTester {
                             posTable.put(mapkey, 0);
                         }
                         if (j != posTable.get(mapkey)) {
-                            System.out.println(String.format("数据错误 topic %s 序号:%d", topic, j));
+                            System.out.println(String.format("数据错误 topic %s 序号:%d", mapkey, j));
+                            System.out.println(String.format("thread pull %s",pc));
                             System.exit(0);
                         }
-                        if (!msg.headers().getString("SearchKey").equals("hello")) {
-                            System.out.println(String.format("header错误 topic %s 序号:%d", topic, j));
+                        if (!msg.headers().getString(MessageHeader.SEARCH_KEY).equals("hello")) {
+                            System.out.println(String.format("header错误 topic %s 序号:%d", topic, -1));
                             System.exit(0);
                         }
-                        if (!(msg.headers().getInt("77")==1)) {
-                            System.out.println(String.format("header错误 topic %s 序号:%d", topic, j));
+                        if (msg.headers().getInt(MessageHeader.MESSAGE_ID)!=j) {
+                            System.out.println(String.format("header错误 message %s 序号:%d", topic, j));
+                            System.out.println(str);
+                            System.out.println(msg.headers().getMap().toString());
                             System.exit(0);
                         }
-                        if (!(msg.headers().getLong("777")==1l)) {
-                            System.out.println(String.format("header错误 topic %s 序号:%d", topic, j));
+                        if (msg.headers().getLong(MessageHeader.BORN_TIMESTAMP)!=1L) {
+                            System.out.println(String.format("header错误 topic %s 序号:%d", topic, -3));
                             System.exit(0);
                         }
-                        if (!(msg.headers().getDouble("7777")==1.0d)) {
-                            System.out.println(String.format("header错误 topic %s 序号:%d", topic, j));
+                        if (msg.headers().getDouble(MessageHeader.SHARDING_KEY)!=1.0d) {
+                            System.out.println(String.format("header错误 topic %s 序号:%d", topic, -4));
                             System.exit(0);
                         }
                         posTable.put(mapkey, posTable.get(mapkey) + 1);
@@ -145,7 +159,7 @@ public class DemoTester {
 
         }
     }
-    static Random rand = new Random(100);
+    static Random rand = new Random(1000);
 
     static void testPush()throws Exception{
         //topic的名字是topic+序号的形式
@@ -196,11 +210,30 @@ public class DemoTester {
         System.out.println(String.format("pull 结束 time cost %d pull count %d", time3 - time2, pullCount.get()));
     }
 
+    private static boolean deleteDir(File dir) {
+        if (dir.isDirectory()) {
+            String[] children = dir.list();
+            //递归删除目录中的子目录下
+            for (int i=0; i<children.length; i++) {
+                boolean success = deleteDir(new File(dir, children[i]));
+                if (!success) {
+                    return false;
+                }
+            }
+        }
+        // 目录此时为空，可以删除
+        return dir.delete();
+    }
+
     public static void main(String args[]) {
         try {
-                testPush();
-                testPull();
-        } catch (Exception e) {
+            File file = new File("data");
+            if(file.exists())
+                deleteDir(file);
+            file.mkdirs();
+            testPush();
+            testPull();
+        }catch (Exception e){
             e.printStackTrace();
         }
 

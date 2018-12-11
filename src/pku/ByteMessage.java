@@ -1,23 +1,22 @@
 package pku;
 
-import java.io.Serializable;
-
 /**
- * 字节消息接口
+ *
+ * 字节信息接口
+ * 字节信息的基本结构为：消息头Header+消息主体Body
  *
  */
-public interface ByteMessage extends Serializable {
 
-    //设置消息头
-    void setHeaders(KeyValue headers);
-    //获取字节数据
-    byte[] getBody();
-    //设置字节数据
-    void setBody(byte[] body);
+public interface ByteMessage {
 
     public KeyValue headers();
 
-    //设置header
+    byte[] getBody();
+
+    void setHeaders(KeyValue header);
+
+    void setBody(byte[] body);
+
     public ByteMessage putHeaders(String key, int value);
 
     public ByteMessage putHeaders(String key, long value);

@@ -13,6 +13,9 @@ public class MessageHeader {
     //topic名字
     //类型: string
     public static final String TOPIC = "Topic";
+    //topic名字
+    //类型: string
+    public static final String QUEUE = "Queue";
     //创建时的时间戳
     //类型: long
     public static final String BORN_TIMESTAMP = "BornTimestamp";

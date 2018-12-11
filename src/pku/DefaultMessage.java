@@ -1,57 +1,66 @@
 package pku;
 
 import java.io.Serializable;
-import java.nio.ByteBuffer;
 
 /**
- *消息的实现
+ * 字节消息的实现
+ * 字节消息的消息头为KeyValue结构，消息主体为byte数组
  */
 
-//在此处添加了序列化信息
-public class DefaultMessage implements ByteMessage, Serializable {
+public class DefaultMessage implements ByteMessage,Serializable {
+    private static final long serialVersionUID = 1L;
 
     private KeyValue headers = new DefaultKeyValue();
     private byte[] body;
 
-    public void setHeaders(KeyValue headers) {
-        this.headers = headers;
+    public DefaultMessage(){
     }
 
-    public DefaultMessage(byte[] body) {
+    public DefaultMessage(byte[] body){
         this.body = body;
     }
 
-    public byte[] getBody() {
-        return body;
-    }
-
-    public void setBody(byte[] body) {
-        this.body = body;
-    }
-
+    @Override
     public KeyValue headers() {
         return headers;
     }
 
+    @Override
+    public byte[] getBody() {
+        return body;
+    }
 
-    public DefaultMessage putHeaders(String key, int value) {
+    @Override
+    public void setHeaders(KeyValue headers) {
+        this.headers = headers;
+    }
+
+    @Override
+    public void setBody(byte[] body) {
+        this.body = body;
+    }
+
+    @Override
+    public ByteMessage putHeaders(String key, int value) {
         headers.put(key, value);
         return this;
     }
 
-    public DefaultMessage putHeaders(String key, long value) {
+    @Override
+    public ByteMessage putHeaders(String key, long value) {
         headers.put(key, value);
         return this;
     }
 
-    public DefaultMessage putHeaders(String key, double value) {
+    @Override
+    public ByteMessage putHeaders(String key, double value) {
         headers.put(key, value);
         return this;
     }
 
-    public DefaultMessage putHeaders(String key, String value) {
+    @Override
+    public ByteMessage putHeaders(String key, String value) {
         headers.put(key, value);
         return this;
     }
-
 }
