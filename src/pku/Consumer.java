@@ -14,7 +14,7 @@ public class Consumer {
 
     String queue;
     List<String> topics = new LinkedList<>();
-    ArrayList<BufferedInputStream> inList = new ArrayList<>();
+    List<BufferedInputStream> inList = new ArrayList<>();
     BufferedInputStream in;
 
 
@@ -27,19 +27,22 @@ public class Consumer {
         inList = MessageStore.store.pullTopicStream(topics);
     }
 
-    public ByteMessage poll() throws Exception {
-        ByteMessage res = null;
-        byte[] data = null;
+    public ByteMessage poll() {
+        byte[] data;
         for (int i = 0; i < inList.size(); i++) {
             in = inList.get(i);
             data = readData(in);
             if (data == null) continue;
             byte[] redata = new byte[data.length - 1];
             System.arraycopy(data, 1, redata, 0, data.length - 1);
-            if ((int) data[0] == 0) return getMessage(uncompress(redata));
+            if ((int) data[0] == 0) {
+                try {
+                    return getMessage(uncompress(redata));
+                } catch (DataFormatException e) {}
+            }
             else return getMessage(redata);
         }
-        return res;
+        return null;
     }
 
 
@@ -77,18 +80,17 @@ public class Consumer {
 
 
     public ByteMessage getMessage(byte[] data) {
+
         ByteMessage msg = new DefaultMessage(null);
         int datalength = data.length;
-        int headernum = 0;
-        headernum = (int) data[0];
+        int headernum = (int) data[0];
         int pos = 1;
         for (int i = 0; i < headernum; i++) {
-            int key = (int) data[pos++];
+            char key = (char) data[pos++];
             int valuelegth = ((data[pos++] & 0xff) << 8) | (data[pos++] & 0xff);
             byte[] valuebytes = new byte[valuelegth];
-            for (int j = 0; j < valuelegth; j++) {
-                valuebytes[j] = data[pos++];
-            }
+            System.arraycopy(data,pos,valuebytes,0,valuelegth);
+            pos+=valuelegth;
             String value = new String(valuebytes);
             switch (key) {
                 case 'a':
@@ -142,12 +144,8 @@ public class Consumer {
             }
         }
         byte[] body = new byte[datalength - pos];
-        int start = 0;
-        for (int i = pos; i < data.length; i++) {
-            body[start++] = data[i];
-        }
+        System.arraycopy(data,pos,body,0,body.length);
         msg.setBody(body);
         return msg;
     }
-
 }

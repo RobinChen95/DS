@@ -1,5 +1,6 @@
 package pku;
 
+
 import java.io.*;
 import java.util.*;
 
@@ -20,7 +21,7 @@ public class MessageStore {
      * @param data
      * @param Topic
      */
-    public synchronized void push(byte[] data, String Topic) {
+    public void push(byte[] data, String Topic) {
         try {
             synchronized (this) {
                 if (!outMap.containsKey(Topic))
@@ -29,7 +30,6 @@ public class MessageStore {
             OutputStream out = outMap.get(Topic);
             out.write(data);
         } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
@@ -59,6 +59,5 @@ public class MessageStore {
             val.flush();
         }
     }
-
 
 }

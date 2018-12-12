@@ -1,6 +1,5 @@
 package pku;
 
-import java.io.*;
 import java.util.HashMap;
 import java.util.Set;
 
@@ -9,8 +8,7 @@ import java.util.Set;
  * 目前来看该实现基本是以HashMap为核心实现函数
  */
 
-public class DefaultKeyValue implements KeyValue,Externalizable {
-    private static final long serialVersionUID = 2L;
+public class DefaultKeyValue implements KeyValue {
 
     // final与static是类成员变化修饰词。final表示被修饰成员一旦被赋值就无法被复写、覆盖与继承
     private final HashMap<String, Object> kvs = new HashMap<>();
@@ -69,13 +67,4 @@ public class DefaultKeyValue implements KeyValue,Externalizable {
         return kvs.containsKey(key);
     }
 
-    @Override
-    public void writeExternal(ObjectOutput objectOutput) throws IOException {
-        objectOutput.writeObject(kvs);
-    }
-
-    @Override
-    public void readExternal(ObjectInput objectInput) throws IOException, ClassNotFoundException {
-        kvs.putAll((HashMap<String,Object>)objectInput.readObject());
-    }
 }

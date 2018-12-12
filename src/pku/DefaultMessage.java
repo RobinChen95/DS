@@ -1,20 +1,15 @@
 package pku;
 
-import java.io.Serializable;
-
 /**
  * 字节消息的实现
  * 字节消息的消息头为KeyValue结构，消息主体为byte数组
  */
 
-public class DefaultMessage implements ByteMessage,Serializable {
-    private static final long serialVersionUID = 1L;
+public class DefaultMessage implements ByteMessage {
 
     private KeyValue headers = new DefaultKeyValue();
     private byte[] body;
 
-    public DefaultMessage(){
-    }
 
     public DefaultMessage(byte[] body){
         this.body = body;

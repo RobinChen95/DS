@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.zip.Deflater;
 
 /**
@@ -28,7 +27,7 @@ public class Producer {
     public void send(ByteMessage defaultMessage) {
         String topic = defaultMessage.headers().getString("Topic");
 
-        //消息头序列化
+        //消息头
         HashMap headers = defaultMessage.headers().getMap();
         Set<String> headkey = headers.keySet();
         List<Byte> keytpe = new ArrayList<>();
@@ -62,7 +61,7 @@ public class Producer {
             pos += count.get(i);
         }
 
-        //消息体序列化
+        //消息体
         byte[] bytebody = defaultMessage.getBody();
 
         int len = byteheader.length + bytebody.length;
