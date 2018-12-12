@@ -18,7 +18,7 @@ public class Consumer {
     BufferedInputStream in;
 
 
-    public void attachQueue(String queueName, Collection<String> t) throws Exception{
+    public void attachQueue(String queueName, Collection<String> t) throws Exception {
         if (queue != null) {
             throw new Exception("只允许绑定一次");
         }
@@ -27,35 +27,32 @@ public class Consumer {
         inList = MessageStore.store.pullTopicStream(topics);
     }
 
-    public ByteMessage poll() throws Exception{
+    public ByteMessage poll() throws Exception {
         ByteMessage res = null;
         byte[] data = null;
         for (int i = 0; i < inList.size(); i++) {
             in = inList.get(i);
             data = readData(in);
-            if(data == null) continue;
-            byte[] redata = new byte[data.length-1];
-            System.arraycopy(data, 1, redata, 0, data.length-1);
-            if((int)data[0] == 0) return getMessage(uncompress(redata));
+            if (data == null) continue;
+            byte[] redata = new byte[data.length - 1];
+            System.arraycopy(data, 1, redata, 0, data.length - 1);
+            if ((int) data[0] == 0) return getMessage(uncompress(redata));
             else return getMessage(redata);
         }
         return res;
     }
 
 
-    public byte[] readData(BufferedInputStream br)
-    {
-        try
-        {
-            if(br.available() <= 0) return null;
+    public byte[] readData(BufferedInputStream br) {
+        try {
+            if (br.available() <= 0) return null;
             byte[] datalength = new byte[4];
             br.read(datalength, 0, 4);
-            int length = ((datalength[0] & 0xff) << 24 ) | ((datalength[1] & 0xff) << 16 ) | ((datalength[2] & 0xff) << 8 ) | (datalength[3] & 0xff);
+            int length = ((datalength[0] & 0xff) << 24) | ((datalength[1] & 0xff) << 16) | ((datalength[2] & 0xff) << 8) | (datalength[3] & 0xff);
             byte[] data = new byte[length];
             br.read(data, 0, length);
             return data;
-        }catch(Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return null;
@@ -79,25 +76,21 @@ public class Consumer {
     }
 
 
-    public ByteMessage getMessage(byte[] data)
-    {
+    public ByteMessage getMessage(byte[] data) {
         ByteMessage msg = new DefaultMessage(null);
         int datalength = data.length;
         int headernum = 0;
         headernum = (int) data[0];
         int pos = 1;
-        for(int i=0; i<headernum; i++)
-        {
-            int key = (int)data[pos++];
-            int valuelegth = ((data[pos++] & 0xff) << 8 ) | (data[pos++] & 0xff);
+        for (int i = 0; i < headernum; i++) {
+            int key = (int) data[pos++];
+            int valuelegth = ((data[pos++] & 0xff) << 8) | (data[pos++] & 0xff);
             byte[] valuebytes = new byte[valuelegth];
-            for(int j=0; j<valuelegth; j++)
-            {
+            for (int j = 0; j < valuelegth; j++) {
                 valuebytes[j] = data[pos++];
             }
             String value = new String(valuebytes);
-            switch(key)
-            {
+            switch (key) {
                 case 'a':
                     msg.putHeaders("MessageId", Integer.parseInt(value));
                     break;
@@ -150,8 +143,7 @@ public class Consumer {
         }
         byte[] body = new byte[datalength - pos];
         int start = 0;
-        for(int i=pos; i<data.length; i++)
-        {
+        for (int i = pos; i < data.length; i++) {
             body[start++] = data[i];
         }
         msg.setBody(body);

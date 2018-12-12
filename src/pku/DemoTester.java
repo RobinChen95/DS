@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class DemoTester {
     //每个pusher向每个topic发送的消息数目
-    static int PUSH_COUNT = 400;
+    static int PUSH_COUNT = 10000;
     //发送消息的线程数
     static int PUSH_THREAD_COUNT = 4;
     //发送线程往n个topic发消息
@@ -44,10 +44,10 @@ public class DemoTester {
         PushTester(List<String> t, int id) {
             topics.addAll(t);
             this.id = id;
-            StringBuilder sb=new StringBuilder();
-            sb.append(String.format("producer%d push to:",id));
-            for (int i = 0; i <t.size() ; i++) {
-                sb.append(t.get(i)+" ");
+            StringBuilder sb = new StringBuilder();
+            sb.append(String.format("producer%d push to:", id));
+            for (int i = 0; i < t.size(); i++) {
+                sb.append(t.get(i) + " ");
             }
             System.out.println(sb.toString());
         }
@@ -60,7 +60,7 @@ public class DemoTester {
                     for (int j = 0; j < PUSH_COUNT; j++) {
                         //topic加j作为数据部分
                         //j是序号, 在consumer中会用来校验顺序
-                        byte[] data = (topic +" "+id + " " + j).getBytes();
+                        byte[] data = (topic + " " + id + " " + j).getBytes();
                         ByteMessage msg = producer.createBytesMessageToTopic(topics.get(i), data);
                         //设置一个header
                         msg.putHeaders(MessageHeader.SEARCH_KEY, "hello");
@@ -75,9 +75,9 @@ public class DemoTester {
                         pushCount.incrementAndGet();
                     }
                 }
-                System.out.println(String.format("thread pull %s",topics.size()*PUSH_COUNT));
+                System.out.println(String.format("thread pull %s", topics.size() * PUSH_COUNT));
                 producer.flush();
-            }catch (Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
             }
 
@@ -89,16 +89,17 @@ public class DemoTester {
         String queue;
         List<String> topics = new ArrayList<>();
         Consumer consumer = new Consumer();
-        int pc=0;
+        int pc = 0;
+
         public PullTester(String s, ArrayList<String> tops) throws Exception {
             queue = s;
             topics.addAll(tops);
             consumer.attachQueue(s, tops);
 
-            StringBuilder sb=new StringBuilder();
-            sb.append(String.format("queue%s attach:",s));
-            for (int i = 0; i <topics.size() ; i++) {
-                sb.append(topics.get(i)+" ");
+            StringBuilder sb = new StringBuilder();
+            sb.append(String.format("queue%s attach:", s));
+            for (int i = 0; i < topics.size(); i++) {
+                sb.append(topics.get(i) + " ");
             }
             System.out.println(sb.toString());
         }
@@ -111,7 +112,7 @@ public class DemoTester {
                 while (true) {
                     ByteMessage msg = consumer.poll();
                     if (msg == null) {
-                        System.out.println(String.format("thread pull %s",pc));
+                        System.out.println(String.format("thread pull %s", pc));
                         return;
                     } else {
                         byte[] data = msg.getBody();
@@ -121,30 +122,30 @@ public class DemoTester {
                         String topic = strs[0];
                         String prod = strs[1];
                         int j = Integer.parseInt(strs[2]);
-                        String mapkey=topic+" "+prod;
+                        String mapkey = topic + " " + prod;
                         if (!posTable.containsKey(mapkey)) {
                             posTable.put(mapkey, 0);
                         }
                         if (j != posTable.get(mapkey)) {
                             System.out.println(String.format("数据错误 topic %s 序号:%d", mapkey, j));
-                            System.out.println(String.format("thread pull %s",pc));
+                            System.out.println(String.format("thread pull %s", pc));
                             System.exit(0);
                         }
                         if (!msg.headers().getString(MessageHeader.SEARCH_KEY).equals("hello")) {
                             System.out.println(String.format("header错误 topic %s 序号:%d", topic, -1));
                             System.exit(0);
                         }
-                        if (msg.headers().getInt(MessageHeader.MESSAGE_ID)!=j) {
+                        if (msg.headers().getInt(MessageHeader.MESSAGE_ID) != j) {
                             System.out.println(String.format("header错误 message %s 序号:%d", topic, j));
                             System.out.println(str);
                             System.out.println(msg.headers().getMap().toString());
                             System.exit(0);
                         }
-                        if (msg.headers().getLong(MessageHeader.BORN_TIMESTAMP)!=1L) {
+                        if (msg.headers().getLong(MessageHeader.BORN_TIMESTAMP) != 1L) {
                             System.out.println(String.format("header错误 topic %s 序号:%d", topic, -3));
                             System.exit(0);
                         }
-                        if (msg.headers().getDouble(MessageHeader.SHARDING_KEY)!=1.0d) {
+                        if (msg.headers().getDouble(MessageHeader.SHARDING_KEY) != 1.0d) {
                             System.out.println(String.format("header错误 topic %s 序号:%d", topic, -4));
                             System.exit(0);
                         }
@@ -153,15 +154,16 @@ public class DemoTester {
                         pc++;
                     }
                 }
-            }catch (Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
             }
 
         }
     }
+
     static Random rand = new Random(1000);
 
-    static void testPush()throws Exception{
+    static void testPush() throws Exception {
         //topic的名字是topic+序号的形式
         System.out.println("开始push");
         long time1 = System.currentTimeMillis();
@@ -171,8 +173,8 @@ public class DemoTester {
             ArrayList<String> tops = new ArrayList<>();
             int start = rand.nextInt(TOPIC_COUNT);
             for (int j = 0; j < PUSH_TOPIC_COUNT; j++) {
-                int v = (start+j)%TOPIC_COUNT;
-                tops.add("topic"+Integer.toString(v));
+                int v = (start + j) % TOPIC_COUNT;
+                tops.add("topic" + Integer.toString(v));
             }
             Thread t = new Thread(new PushTester(tops, i));
             t.start();
@@ -185,8 +187,8 @@ public class DemoTester {
         System.out.println(String.format("push 结束 time cost %d push count %d", time2 - time1, pushCount.get()));
     }
 
-    static void testPull()throws Exception{
-        long time2=System.currentTimeMillis();
+    static void testPull() throws Exception {
+        long time2 = System.currentTimeMillis();
         System.out.println("开始pull");
         int queue = 0;
         ArrayList<Thread> pullers = new ArrayList<>();
@@ -195,8 +197,8 @@ public class DemoTester {
             ArrayList<String> tops = new ArrayList<>();
             int start = rand.nextInt(TOPIC_COUNT);
             for (int j = 0; j < PULL_TOPIC_COUNT; j++) {
-                int v =(start+j)%TOPIC_COUNT;
-                tops.add("topic"+Integer.toString(v));
+                int v = (start + j) % TOPIC_COUNT;
+                tops.add("topic" + Integer.toString(v));
             }
             Thread t = new Thread(new PullTester(Integer.toString(queue), tops));
             queue++;
@@ -214,7 +216,7 @@ public class DemoTester {
         if (dir.isDirectory()) {
             String[] children = dir.list();
             //递归删除目录中的子目录下
-            for (int i=0; i<children.length; i++) {
+            for (int i = 0; i < children.length; i++) {
                 boolean success = deleteDir(new File(dir, children[i]));
                 if (!success) {
                     return false;
@@ -228,12 +230,12 @@ public class DemoTester {
     public static void main(String args[]) {
         try {
             File file = new File("data");
-            if(file.exists())
+            if (file.exists())
                 deleteDir(file);
             file.mkdirs();
             testPush();
             testPull();
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
