@@ -18,7 +18,6 @@ public class Consumer {
     String queue;
     List<String> topics = new LinkedList<>();
     List<Integer> readpos = new ArrayList<>();
-    List<FileChannel> inList = new ArrayList<>();
     List<MappedByteBuffer> bufferList = new ArrayList<>();
     int rePos = 0;
 
@@ -28,16 +27,15 @@ public class Consumer {
         }
         queue = queueName;
         topics.addAll(t);
-        inList = MessageStore.store.pullTopicStream(topics);
-        bufferList = MessageStore.mappedByteBufferList;
+        bufferList = MessageStore.store.pullTopicStream(topics);
+        for (int i = 0; i < bufferList.size(); i++) {
+            readpos.add(0);
+        }
     }
 
     public ByteMessage poll() {
         byte[] data;
-        for (int i = 0; i < inList.size(); i++) {
-            readpos.add(0);
-        }
-        for (int i = rePos; i < inList.size(); i++) {
+        for (int i = rePos; i < bufferList.size(); i++) {
             data = readData(i);
             if (data==null) {
                 rePos += 1;
@@ -57,22 +55,23 @@ public class Consumer {
 
 
     public byte[] readData(int n) {
+        byte b;
+        byte[] datalength;
+        byte[] data;
         try {
             if (bufferList.get(n).hasRemaining()){
-                byte[] datalength = new byte[4];
+                datalength = new byte[4];
                 for (int i = 0; i < 4; i++) {
                     if (readpos.get(n)>=bufferList.get(n).limit())return null;
-                    /*System.out.println("limit:"+bufferList.get(n).limit());
-                    System.out.println("readpos:"+readpos.get(n));*/
-                    byte b = bufferList.get(n).get(readpos.get(n));
+                    b = bufferList.get(n).get(readpos.get(n));
                     datalength[i]=b;
                     readpos.set(n,readpos.get(n)+1);
                 }
                 int length = ((datalength[1] & 0xff) << 24) | ((datalength[1] & 0xff) << 16) | ((datalength[2] & 0xff) << 8) | (datalength[3] & 0xff);
-                byte[] data = new byte[length];
+                data = new byte[length];
                 for (int i = 0; i < length; i++) {
                     if (readpos.get(n)>=bufferList.get(n).limit())return null;
-                    byte b = bufferList.get(n).get(readpos.get(n));
+                    b = bufferList.get(n).get(readpos.get(n));
                     data[i]=b;
                     readpos.set(n,readpos.get(n)+1);
                 }

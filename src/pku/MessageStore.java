@@ -13,7 +13,6 @@ import java.util.*;
 public class MessageStore {
     static final MessageStore store = new MessageStore();
 
-    static List<MappedByteBuffer> mappedByteBufferList = new ArrayList<>();
 
     String path = "data";
     HashMap<String, BufferedOutputStream> outMap = new HashMap<>();
@@ -38,9 +37,8 @@ public class MessageStore {
     }
 
 
-    public synchronized ArrayList<FileChannel> pullTopicStream(List<String> topics) {
-        ArrayList<FileChannel> datastreams = new ArrayList<>();
-
+    public synchronized List<MappedByteBuffer> pullTopicStream(List<String> topics) {
+        List<MappedByteBuffer> mappedByteBufferList = new ArrayList<>();
         try {
             for (int i = 0; i < topics.size(); i++) {
                 String topic = topics.get(i);
@@ -49,15 +47,12 @@ public class MessageStore {
                     //BufferedInputStream stream = new BufferedInputStream(new FileInputStream(file));
                     FileChannel fc = new FileInputStream(file).getChannel();
                     mappedByteBufferList.add(fc.map(FileChannel.MapMode.READ_ONLY,0,fc.size()));
-                    datastreams.add(fc);
                 }
-            }
-            for (int i = 0; i < mappedByteBufferList.size(); i++) {
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return datastreams;
+        return mappedByteBufferList;
     }
 
 
