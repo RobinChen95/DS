@@ -2,6 +2,9 @@ package pku;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.*;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
@@ -14,9 +17,9 @@ public class Consumer {
 
     String queue;
     List<String> topics = new LinkedList<>();
-    List<BufferedInputStream> inList = new ArrayList<>();
-    BufferedInputStream in;
-
+    List<Integer> readpos = new ArrayList<>();
+    List<FileChannel> inList = new ArrayList<>();
+    List<MappedByteBuffer> bufferList = new ArrayList<>();
 
     public void attachQueue(String queueName, Collection<String> t) throws Exception {
         if (queue != null) {
@@ -25,14 +28,17 @@ public class Consumer {
         queue = queueName;
         topics.addAll(t);
         inList = MessageStore.store.pullTopicStream(topics);
+        bufferList = MessageStore.mappedByteBufferList;
     }
 
     public ByteMessage poll() {
         byte[] data;
         for (int i = 0; i < inList.size(); i++) {
-            in = inList.get(i);
-            data = readData(in);
-            if (data == null) continue;
+            readpos.add(0);
+        }
+        for (int i = 0; i < inList.size(); i++) {
+            data = readData(i);
+            if (data.length==0) continue;
             byte[] redata = new byte[data.length - 1];
             System.arraycopy(data, 1, redata, 0, data.length - 1);
             if ((int) data[0] == 0) {
@@ -46,15 +52,26 @@ public class Consumer {
     }
 
 
-    public byte[] readData(BufferedInputStream br) {
+    public byte[] readData(int n) {
         try {
-            if (br.available() <= 0) return null;
-            byte[] datalength = new byte[4];
-            br.read(datalength, 0, 4);
-            int length = ((datalength[0] & 0xff) << 24) | ((datalength[1] & 0xff) << 16) | ((datalength[2] & 0xff) << 8) | (datalength[3] & 0xff);
-            byte[] data = new byte[length];
-            br.read(data, 0, length);
-            return data;
+            if (bufferList.get(n).hasRemaining()){
+                byte[] datalength = new byte[4];
+                for (int i = 0; i < 4; i++) {
+                    if (readpos.get(n)>bufferList.get(n).limit())return null;
+                    byte b = bufferList.get(n).get(readpos.get(n));
+                    datalength[i]=b;
+                    readpos.set(n,readpos.get(n)+1);
+                }
+                int length = ((datalength[1] & 0xff) << 24) | ((datalength[1] & 0xff) << 16) | ((datalength[2] & 0xff) << 8) | (datalength[3] & 0xff);
+                byte[] data = new byte[length];
+                for (int i = 0; i < length; i++) {
+                    if (readpos.get(n)>bufferList.get(n).limit())return null;
+                    byte b = bufferList.get(n).get(readpos.get(n));
+                    data[i]=b;
+                    readpos.set(n,readpos.get(n)+1);
+                }
+                return data;
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
