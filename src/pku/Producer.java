@@ -13,6 +13,8 @@ import java.util.zip.Deflater;
 
 public class Producer {
     HashMap<String, Character> keyTable = buildKeyTable();
+    String tempValue;
+    int tempLen;
 
 
     //生成指定Topic的字节消息，并返回
@@ -28,56 +30,74 @@ public class Producer {
         String topic = defaultMessage.headers().getString("Topic");
 
         //消息头
-        HashMap headers = defaultMessage.headers().getMap();
+        DefaultKeyValue header = (DefaultKeyValue) defaultMessage.headers();
+        HashMap<String, String> headers = ((DefaultKeyValue) defaultMessage.headers()).getMap2();
+        byte[] bytebody = defaultMessage.getBody();
         Set<String> headkey = headers.keySet();
+
+
+        int headnum = headkey.size();
+        int len = header.getLength() + 3*headnum+1 + bytebody.length;
+        byte[] data = new byte[len];
+
+        data[0] = (byte) headnum;
+        int idx = 1;
+        for (String key : headkey) {
+            if (keyTable.containsKey(key)) {
+                data[idx++] = (byte) keyTable.get(key).charValue();
+                tempValue = headers.get(key);
+                tempLen = tempValue.length();
+                data[idx++] = (byte) ((tempLen >>> 8) & 0xff);
+                data[idx++] = (byte) ((tempLen >>> 0) & 0xff);
+                System.arraycopy(tempValue.getBytes(), 0, data, idx, tempLen);
+                idx += tempLen;
+            }
+        }
+        System.arraycopy(bytebody, 0, data, idx, bytebody.length);
+        /*
         List<Byte> keytpe = new ArrayList<>();
         List<String> value = new ArrayList<>();
         List<Integer> count = new ArrayList<>();
-        int headnum = 0;
+        int headnum = headkey.size();
         int headerslen = 0;
+        byte[] bytebody = defaultMessage.getBody();
+
+
         for (String key : headkey) {
-            headnum += 1;
             if (keyTable.containsKey(key)) {
                 keytpe.add((byte) keyTable.get(key).charValue());
-                value.add(String.valueOf(headers.get(key)));
-                count.add(String.valueOf(headers.get(key)).length());
-                headerslen += String.valueOf(headers.get(key)).length();
-            } else {
-                keytpe.add((byte) 'z');
-                value.add((String) headers.get(key));
-                count.add(String.valueOf(headers.get(key)).length());
-                headerslen += String.valueOf(headers.get(key)).length();
+                tempValue = String.valueOf(headers.get(key));
+                value.add(tempValue);
+                count.add(tempValue.length());
+                headerslen += tempValue.length();
             }
         }
-        byte[] byteheader = new byte[3 * headnum + headerslen + 1];
-        byteheader[0] = (byte) headnum;
+
+        int len = (3 * headnum + headerslen + 1) + bytebody.length;
+        byte[] data = new byte[len];
+        data[0] = (byte) headnum;
         int pos = 1;
         for (int i = 0; i < headnum; i++) {
-            byteheader[pos++] = keytpe.get(i);
-            byteheader[pos++] = (byte) ((count.get(i) >>> 8) & 0xff);
-            byteheader[pos++] = (byte) ((count.get(i) >>> 0) & 0xff);
+            data[pos++] = keytpe.get(i);
+            data[pos++] = (byte) ((count.get(i) >>> 8) & 0xff);
+            data[pos++] = (byte) ((count.get(i) >>> 0) & 0xff);
             byte[] a = value.get(i).getBytes();
-            System.arraycopy(a, 0, byteheader, pos, count.get(i));
+            System.arraycopy(a, 0, data, pos, count.get(i));
             pos += count.get(i);
         }
 
-        //消息体
-        byte[] bytebody = defaultMessage.getBody();
-
-        int len = byteheader.length + bytebody.length;
-        byte[] data = new byte[len];
-        System.arraycopy(byteheader, 0, data, 0, byteheader.length);
-        System.arraycopy(bytebody, 0, data, byteheader.length, bytebody.length);
+        System.arraycopy(bytebody, 0, data, pos, bytebody.length);
+        */
 
         //数据压缩
         byte[] compressdata;
-        byte[] iscomress = new byte[1];
+        byte iscomress;
         if (len >= 1024) {
             compressdata = compress(data);
-            iscomress[0] = (byte) 0;
+            iscomress = 0;
         } else {
             compressdata = data;
-            iscomress[0] = (byte) 1;
+            iscomress = 1;
         }
 
         byte[] storedata = new byte[compressdata.length + 5];
@@ -87,7 +107,7 @@ public class Producer {
         datalength[1] = (byte) ((compressdata.length + 1) >>> 16 & 0xFF);
         datalength[0] = (byte) ((compressdata.length + 1) >>> 24);
         System.arraycopy(datalength, 0, storedata, 0, 4);
-        System.arraycopy(iscomress, 0, storedata, 4, 1);
+        storedata[4] = iscomress;
         System.arraycopy(compressdata, 0, storedata, 5, compressdata.length);
 
         MessageStore.store.push(storedata, topic);
@@ -100,7 +120,7 @@ public class Producer {
 
     public byte[] compress(byte[] indata) {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        Deflater compressor = new Deflater(1);
+        Deflater compressor = new Deflater(2);
         try {
             compressor.setInput(indata);
             compressor.finish();

@@ -2,8 +2,6 @@ package pku;
 
 
 import java.io.*;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
 import java.util.*;
 
 /**
@@ -13,8 +11,7 @@ import java.util.*;
 public class MessageStore {
     static final MessageStore store = new MessageStore();
 
-
-    String path = "data";
+    String path = "data"+ File.separator;
     HashMap<String, BufferedOutputStream> outMap = new HashMap<>();
 
 
@@ -28,7 +25,7 @@ public class MessageStore {
         try {
             synchronized (this) {
                 if (!outMap.containsKey(Topic))
-                    outMap.put(Topic, new BufferedOutputStream(new FileOutputStream(path + File.separator + Topic)));
+                    outMap.put(Topic, new BufferedOutputStream(new FileOutputStream(path  + Topic)));
             }
             OutputStream out = outMap.get(Topic);
             out.write(data);
@@ -37,22 +34,20 @@ public class MessageStore {
     }
 
 
-    public synchronized List<MappedByteBuffer> pullTopicStream(List<String> topics) {
-        List<MappedByteBuffer> mappedByteBufferList = new ArrayList<>();
+    public synchronized ArrayList<BufferedInputStream> pullTopicStream(List<String> topics) {
+        ArrayList<BufferedInputStream> datastreams = new ArrayList<>();
         try {
-            for (int i = 0; i < topics.size(); i++) {
-                String topic = topics.get(i);
-                File file = new File(path + File.separator + topic);
+            for (String topic: topics) {
+                File file = new File(path + topic);
                 if (file.exists()) {
-                    //BufferedInputStream stream = new BufferedInputStream(new FileInputStream(file));
-                    FileChannel fc = new FileInputStream(file).getChannel();
-                    mappedByteBufferList.add(fc.map(FileChannel.MapMode.READ_ONLY,0,fc.size()));
+                    BufferedInputStream stream = new BufferedInputStream(new FileInputStream(file));
+                    datastreams.add(stream);
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return mappedByteBufferList;
+        return datastreams;
     }
 
 

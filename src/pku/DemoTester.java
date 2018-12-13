@@ -80,6 +80,7 @@ public class DemoTester {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+
         }
     }
 
@@ -136,8 +137,6 @@ public class DemoTester {
                         }
                         if (msg.headers().getInt(MessageHeader.MESSAGE_ID) != j) {
                             System.out.println(String.format("header错误 message %s 序号:%d", topic, j));
-                            System.out.println(str);
-                            System.out.println(msg.headers().getMap().toString());
                             System.exit(0);
                         }
                         if (msg.headers().getLong(MessageHeader.BORN_TIMESTAMP) != 1L) {
