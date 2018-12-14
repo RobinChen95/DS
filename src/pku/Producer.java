@@ -54,40 +54,6 @@ public class Producer {
             }
         }
         System.arraycopy(bytebody, 0, data, idx, bytebody.length);
-        /*
-        List<Byte> keytpe = new ArrayList<>();
-        List<String> value = new ArrayList<>();
-        List<Integer> count = new ArrayList<>();
-        int headnum = headkey.size();
-        int headerslen = 0;
-        byte[] bytebody = defaultMessage.getBody();
-
-
-        for (String key : headkey) {
-            if (keyTable.containsKey(key)) {
-                keytpe.add((byte) keyTable.get(key).charValue());
-                tempValue = String.valueOf(headers.get(key));
-                value.add(tempValue);
-                count.add(tempValue.length());
-                headerslen += tempValue.length();
-            }
-        }
-
-        int len = (3 * headnum + headerslen + 1) + bytebody.length;
-        byte[] data = new byte[len];
-        data[0] = (byte) headnum;
-        int pos = 1;
-        for (int i = 0; i < headnum; i++) {
-            data[pos++] = keytpe.get(i);
-            data[pos++] = (byte) ((count.get(i) >>> 8) & 0xff);
-            data[pos++] = (byte) ((count.get(i) >>> 0) & 0xff);
-            byte[] a = value.get(i).getBytes();
-            System.arraycopy(a, 0, data, pos, count.get(i));
-            pos += count.get(i);
-        }
-
-        System.arraycopy(bytebody, 0, data, pos, bytebody.length);
-        */
 
         //数据压缩
         byte[] compressdata;

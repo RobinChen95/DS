@@ -14,9 +14,6 @@ public class MessageStore {
     String path = "data"+ File.separator;
     HashMap<String, BufferedOutputStream> outMap = new HashMap<>();
 
-
-    //synchronized修饰词为同步线程加了一个java的内置锁，即互斥锁
-
     /**
      * @param data
      * @param Topic

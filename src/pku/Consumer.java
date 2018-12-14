@@ -98,64 +98,11 @@ public class Consumer {
         for (int i = 0; i < headernum; i++) {
             char key = (char) data[pos++];
             int valuelegth = ((data[pos++] & 0xff) << 8) | (data[pos++] & 0xff);
-            //int valuelegth = data[pos++];
             byte[] valuebytes = new byte[valuelegth];
             System.arraycopy(data,pos,valuebytes,0,valuelegth);
             pos+=valuelegth;
             String value = new String(valuebytes);
             msg.putHeaders(keyBackTable.get(key), value);
-            /*
-            switch (key) {
-                case 'a':
-                    msg.putHeaders("MessageId", Integer.parseInt(value));
-                    break;
-                case 'b':
-                    msg.putHeaders("Topic", value);
-                    break;
-                case 'c':
-                    msg.putHeaders("BornTimestamp", Long.parseLong(value));
-                    break;
-                case 'd':
-                    msg.putHeaders("BornHost", value);
-                    break;
-                case 'e':
-                    msg.putHeaders("StoreTimestamp", Long.parseLong(value));
-                    break;
-                case 'f':
-                    msg.putHeaders("StoreHost", value);
-                    break;
-                case 'g':
-                    msg.putHeaders("StartTime", Long.parseLong(value));
-                    break;
-                case 'h':
-                    msg.putHeaders("StopTime", Long.parseLong(value));
-                    break;
-                case 'i':
-                    msg.putHeaders("Timeout", Integer.parseInt(value));
-                    break;
-                case 'j':
-                    msg.putHeaders("Priority", Integer.parseInt(value));
-                    break;
-                case 'k':
-                    msg.putHeaders("Reliability", Integer.parseInt(value));
-                    break;
-                case 'l':
-                    msg.putHeaders("SearchKey", value);
-                    break;
-                case 'm':
-                    msg.putHeaders("ScheduleExpression", value);
-                    break;
-                case 'n':
-                    msg.putHeaders("ShardingKey", Double.parseDouble(value));
-                    break;
-                case 'o':
-                    msg.putHeaders("ShardingPartition", Double.parseDouble(value));
-                    break;
-                case 'p':
-                    msg.putHeaders("TraceId", value);
-                    break;
-            }
-            */
         }
         byte[] body = new byte[datalength - pos];
         System.arraycopy(data,pos,body,0,body.length);
