@@ -1,9 +1,7 @@
 package pku;
 
 import java.io.ByteArrayOutputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Set;
 import java.util.zip.Deflater;
 
@@ -15,6 +13,8 @@ public class Producer {
     HashMap<String, Character> keyTable = buildKeyTable();
     String tempValue;
     int tempLen;
+    int count=0;
+
 
 
     //生成指定Topic的字节消息，并返回
@@ -58,7 +58,8 @@ public class Producer {
         //数据压缩
         byte[] compressdata;
         byte iscomress;
-        if (len >= 1024) {
+        if (len >= 512) {
+            count++;
             compressdata = compress(data);
             iscomress = 0;
         } else {
@@ -82,11 +83,12 @@ public class Producer {
     public void flush() throws Exception {
         MessageStore.store.flush();
         System.out.println("flush");
+        System.out.println("count:"+count);
     }
 
     public byte[] compress(byte[] indata) {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        Deflater compressor = new Deflater(2);
+        Deflater compressor = new Deflater(3);
         try {
             compressor.setInput(indata);
             compressor.finish();
