@@ -11,10 +11,6 @@ import java.util.zip.Deflater;
 
 public class Producer {
     HashMap<String, Character> keyTable = buildKeyTable();
-    String tempValue;
-    int tempLen;
-
-
 
     //生成指定Topic的字节消息，并返回
     public ByteMessage createBytesMessageToTopic(String topic, byte[] body) {
@@ -27,19 +23,22 @@ public class Producer {
     //将字节消息发送出去
     public void send(ByteMessage defaultMessage) {
         String topic = defaultMessage.headers().getString("Topic");
+        String tempValue;
+        int tempLen;
 
         //消息头
         DefaultKeyValue header = (DefaultKeyValue) defaultMessage.headers();
         HashMap<String, String> headers = ((DefaultKeyValue) defaultMessage.headers()).getMap2();
         byte[] bytebody = defaultMessage.getBody();
         Set<String> headkey = headers.keySet();
-
         int headnum = headkey.size();
         int len = header.getLength() + 3*headnum+1 + bytebody.length;
         byte[] data = new byte[len];
-
         data[0] = (byte) headnum;
         int idx = 1;
+
+
+
         for (String key : headkey) {
             if (keyTable.containsKey(key)) {
                 data[idx++] = (byte) keyTable.get(key).charValue();
@@ -51,6 +50,8 @@ public class Producer {
                 idx += tempLen;
             }
         }
+
+
         System.arraycopy(bytebody, 0, data, idx, bytebody.length);
 
         //数据压缩
@@ -83,7 +84,7 @@ public class Producer {
 
     public byte[] compress(byte[] indata) {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        Deflater compressor = new Deflater(4);
+        Deflater compressor = new Deflater(3);
         try {
             compressor.setInput(indata);
             compressor.finish();

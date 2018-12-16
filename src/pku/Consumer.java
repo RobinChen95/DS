@@ -22,10 +22,7 @@ public class Consumer {
     int inListSize;
 
 
-    public void attachQueue(String queueName, Collection<String> t) throws Exception {
-        if (queue != null) {
-            throw new Exception("只允许绑定一次");
-        }
+    public void attachQueue(String queueName, Collection<String> t) {
         queue = queueName;
         topics.addAll(t);
         inList = MessageStore.store.pullTopicStream(topics);

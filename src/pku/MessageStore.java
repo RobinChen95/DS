@@ -32,7 +32,7 @@ public class MessageStore {
     }
 
 
-    public ArrayList<BufferedInputStream> pullTopicStream(List<String> topics) {
+    public synchronized ArrayList<BufferedInputStream> pullTopicStream(List<String> topics) {
         ArrayList<BufferedInputStream> datastreams = new ArrayList<>();
         try {
             for (String topic : topics) {

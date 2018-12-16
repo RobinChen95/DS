@@ -11,7 +11,6 @@ import java.util.Set;
 public class DefaultKeyValue implements KeyValue {
 
     // final与static是类成员变化修饰词。final表示被修饰成员一旦被赋值就无法被复写、覆盖与继承
-    private final HashMap<String, Object> kvs = new HashMap<>();
     private final HashMap<String, String> kv = new HashMap<>();
     private String tmp;
     private int length = 0;
@@ -19,12 +18,13 @@ public class DefaultKeyValue implements KeyValue {
     public DefaultKeyValue(){}
 
     public Object getObj(String key){
-        return kvs.get(key);
+        return kv.get(key);
     }
 
     public HashMap<String, Object> getMap(){
-        return kvs;
+        return null;
     }
+
     public HashMap<String, String> getMap2(){
         return kv;
     }
