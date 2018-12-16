@@ -11,9 +11,7 @@ import java.util.zip.Deflater;
 
 public class Producer {
     HashMap<String, Character> keyTable = buildKeyTable();
-    String tempValue;
-    int tempLen;
-    String topic;
+
     //生成指定Topic的字节消息，并返回
     public ByteMessage createBytesMessageToTopic(String topic, byte[] body) {
         ByteMessage msg = new DefaultMessage(body);
@@ -24,7 +22,9 @@ public class Producer {
 
     //将字节消息发送出去
     public void send(ByteMessage defaultMessage) {
-        topic = defaultMessage.headers().getString("Topic");
+        String topic = defaultMessage.headers().getString("Topic");
+        String tempValue;
+        int tempLen;
 
         //消息头
         DefaultKeyValue header = (DefaultKeyValue) defaultMessage.headers();

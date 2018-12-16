@@ -2,6 +2,7 @@ package pku;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
+import java.nio.MappedByteBuffer;
 import java.util.*;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
@@ -14,9 +15,9 @@ public class Consumer {
 
     String queue;
     List<String> topics = new LinkedList<>();
-    List<BufferedInputStream> inList = new ArrayList<>();
+    HashMap<String, MappedByteBuffer> inBuffer = new HashMap<>();
     HashMap<Character, String> keyBackTable = buildBackKeyTable();
-    BufferedInputStream in;
+    MappedByteBuffer in;
     ByteMessage msg;
     int rePos = 0;
     int inListSize;
@@ -25,14 +26,14 @@ public class Consumer {
     public void attachQueue(String queueName, Collection<String> t) {
         queue = queueName;
         topics.addAll(t);
-        inList = MessageStore.store.pullTopicStream(topics);
-        inListSize = inList.size();
+        inBuffer = MessageStore.store.pullTopicStream(topics);
+        inListSize = inBuffer.size();
     }
 
     public ByteMessage poll() {
         byte[] data;
         for (int i = rePos; i < inListSize; i++) {
-            in = inList.get(rePos);
+            in=inBuffer.get(topics.get(rePos));
             data = readData();
             if (data == null) {
                 rePos += 1;
@@ -54,12 +55,18 @@ public class Consumer {
 
     public byte[] readData() {
         try {
-            if (in.available() <= 0) return null;
+            if (!in.hasRemaining()) return null;
             byte[] datalength = new byte[4];
-            in.read(datalength, 0, 4);
+            for (int i = 0; i < 4; i++) {
+                datalength[i]=in.get();
+            }
+            //in.read(datalength, 0, 4);
             int length = ((datalength[0] & 0xff) << 24) | ((datalength[1] & 0xff) << 16) | ((datalength[2] & 0xff) << 8) | (datalength[3] & 0xff);
             byte[] data = new byte[length];
-            in.read(data, 0, length);
+            for (int i = 0; i < length; i++) {
+                data[i]=in.get();
+            }
+            //in.read(data, 0, length);
             return data;
         } catch (Exception e) {
             e.printStackTrace();
