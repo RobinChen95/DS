@@ -27,12 +27,10 @@ public class MessageStore {
                     outData.put(Topic,new ArrayList<>());
                 }
             }
-            if (outData.get(Topic).size()<10000){
-                for (int i = 0; i < data.length; i++) {
-                    outData.get(Topic).add(data[i]);
-                }
+            for (int i = 0; i < data.length; i++) {
+                outData.get(Topic).add(data[i]);
             }
-            else {
+            if (outData.get(Topic).size()>10000){
                 for (int i = 0; i < data.length; i++) {
                     outData.get(Topic).add(data[i]);
                 }
