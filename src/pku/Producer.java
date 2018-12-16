@@ -57,7 +57,7 @@ public class Producer {
         //数据压缩
         byte[] compressdata;
         byte iscomress;
-        if (len >= 2048) {
+        if (len >= 1024) {
             compressdata = compress(data);
             iscomress = 0;
         } else {
@@ -84,7 +84,7 @@ public class Producer {
 
     public byte[] compress(byte[] indata) {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        Deflater compressor = new Deflater(3);
+        Deflater compressor = new Deflater(4);
         try {
             compressor.setInput(indata);
             compressor.finish();

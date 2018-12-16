@@ -21,11 +21,13 @@ public class MessageStore {
      */
     public void push(byte[] data, String Topic) {
         try {
+            if (!full){
             synchronized (this) {
-                if (!full&&!outMap.containsKey(Topic)) {
+                if (!outMap.containsKey(Topic)) {
                     outMap.put(Topic, new BufferedOutputStream(new FileOutputStream(path + Topic)));
                     if (outMap.size()==20)full=true;
                 }
+            }
             }
             OutputStream out = outMap.get(Topic);
             out.write(data);
