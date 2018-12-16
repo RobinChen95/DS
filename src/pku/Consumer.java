@@ -30,7 +30,7 @@ public class Consumer {
         inListSize = inBuffer.size();
     }
 
-    public ByteMessage poll() throws DataFormatException {
+    public ByteMessage poll() {
         byte[] data;
         for (int i = rePos; i < inListSize; i++) {
             in=inBuffer.get(topics.get(rePos));
@@ -41,8 +41,10 @@ public class Consumer {
             }
             byte[] redata = new byte[data.length - 1];
             System.arraycopy(data, 1, redata, 0, data.length - 1);
-            if (data[0] == 0) {
+            if ( data[0] == 0) {
+                try {
                     return getMessage(uncompress(redata));
+                } catch (DataFormatException e) {}
             }
             else return getMessage(redata);
         }
