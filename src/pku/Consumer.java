@@ -30,7 +30,7 @@ public class Consumer {
         inListSize = inBuffer.size();
     }
 
-    public ByteMessage poll() {
+    public ByteMessage poll() throws DataFormatException {
         byte[] data;
         for (int i = rePos; i < inListSize; i++) {
             in=inBuffer.get(topics.get(rePos));
@@ -41,14 +41,11 @@ public class Consumer {
             }
             byte[] redata = new byte[data.length - 1];
             System.arraycopy(data, 1, redata, 0, data.length - 1);
-            if ((int) data[0] == 0) {
-                try {
+            if (data[0] == 0) {
                     return getMessage(uncompress(redata));
-                } catch (DataFormatException e) {}
             }
             else return getMessage(redata);
         }
-
         return null;
     }
 
@@ -60,13 +57,11 @@ public class Consumer {
             for (int i = 0; i < 4; i++) {
                 datalength[i]=in.get();
             }
-            //in.read(datalength, 0, 4);
             int length = ((datalength[0] & 0xff) << 24) | ((datalength[1] & 0xff) << 16) | ((datalength[2] & 0xff) << 8) | (datalength[3] & 0xff);
             byte[] data = new byte[length];
             for (int i = 0; i < length; i++) {
                 data[i]=in.get();
             }
-            //in.read(data, 0, length);
             return data;
         } catch (Exception e) {
             e.printStackTrace();
