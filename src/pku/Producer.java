@@ -34,7 +34,6 @@ public class Producer {
         byte[] bytebody = defaultMessage.getBody();
         Set<String> headkey = headers.keySet();
 
-
         int headnum = headkey.size();
         int len = header.getLength() + 3*headnum+1 + bytebody.length;
         byte[] data = new byte[len];
@@ -100,7 +99,7 @@ public class Producer {
     }
 
     private HashMap<String, Character> buildKeyTable() {
-        HashMap<String, Character> keyTable = new HashMap<String, Character>();
+        HashMap<String, Character> keyTable = new HashMap<>();
         keyTable.put("MessageId", 'a');
         keyTable.put("Topic", 'b');
         keyTable.put("BornTimestamp", 'c');

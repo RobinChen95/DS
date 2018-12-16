@@ -12,8 +12,7 @@ public class MessageStore {
     static final MessageStore store = new MessageStore();
 
     String path = "data" + File.separator;
-    boolean full = false;
-    HashMap<String, BufferedOutputStream> outMap = new HashMap<>();
+    final HashMap<String, BufferedOutputStream> outMap = new HashMap<>();
 
     /**
      * @param data
@@ -21,13 +20,10 @@ public class MessageStore {
      */
     public void push(byte[] data, String Topic) {
         try {
-            if (!full){
             synchronized (this) {
                 if (!outMap.containsKey(Topic)) {
                     outMap.put(Topic, new BufferedOutputStream(new FileOutputStream(path + Topic)));
-                    if (outMap.size()==20)full=true;
                 }
-            }
             }
             OutputStream out = outMap.get(Topic);
             out.write(data);
