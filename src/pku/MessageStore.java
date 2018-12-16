@@ -13,6 +13,7 @@ public class MessageStore {
 
     String path = "data" + File.separator;
     final HashMap<String, BufferedOutputStream> outMap = new HashMap<>();
+    final HashMap<String, ArrayList<Byte>> outData = new HashMap<>();
 
     /**
      * @param data
@@ -23,10 +24,26 @@ public class MessageStore {
             synchronized (this) {
                 if (!outMap.containsKey(Topic)) {
                     outMap.put(Topic, new BufferedOutputStream(new FileOutputStream(path + Topic)));
+                    outData.put(Topic,new ArrayList<>());
                 }
             }
-            OutputStream out = outMap.get(Topic);
-            out.write(data);
+            if (outData.get(Topic).size()<10000){
+                for (int i = 0; i < data.length; i++) {
+                    outData.get(Topic).add(data[i]);
+                }
+            }
+            else {
+                for (int i = 0; i < data.length; i++) {
+                    outData.get(Topic).add(data[i]);
+                }
+                byte[] temp = new byte[outData.get(Topic).size()];
+                for (int i = 0; i < outData.get(Topic).size(); i++) {
+                    temp[i]= outData.get(Topic).get(i);
+                }
+                OutputStream out = outMap.get(Topic);
+                out.write(temp);
+                outData.replace(Topic,new ArrayList<>());
+            }
         } catch (Exception e) {
         }
     }
