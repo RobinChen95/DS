@@ -11,7 +11,8 @@ import java.util.*;
 public class MessageStore {
     static final MessageStore store = new MessageStore();
 
-    String path = "data"+ File.separator;
+    String path = "data" + File.separator;
+    boolean full = false;
     HashMap<String, BufferedOutputStream> outMap = new HashMap<>();
 
     /**
@@ -21,8 +22,10 @@ public class MessageStore {
     public void push(byte[] data, String Topic) {
         try {
             synchronized (this) {
-                if (!outMap.containsKey(Topic))
-                    outMap.put(Topic, new BufferedOutputStream(new FileOutputStream(path  + Topic)));
+                if (!full&&!outMap.containsKey(Topic)) {
+                    outMap.put(Topic, new BufferedOutputStream(new FileOutputStream(path + Topic)));
+                    if (outMap.size()==20)full=true;
+                }
             }
             OutputStream out = outMap.get(Topic);
             out.write(data);
@@ -34,7 +37,7 @@ public class MessageStore {
     public synchronized ArrayList<BufferedInputStream> pullTopicStream(List<String> topics) {
         ArrayList<BufferedInputStream> datastreams = new ArrayList<>();
         try {
-            for (String topic: topics) {
+            for (String topic : topics) {
                 File file = new File(path + topic);
                 if (file.exists()) {
                     BufferedInputStream stream = new BufferedInputStream(new FileInputStream(file));

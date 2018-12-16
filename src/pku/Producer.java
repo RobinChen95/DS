@@ -55,8 +55,15 @@ public class Producer {
         System.arraycopy(bytebody, 0, data, idx, bytebody.length);
 
         //数据压缩
-        byte[] compressdata = (len>1024)? compress(data):data;
-        byte iscomress = (len>1024)?(byte)0:(byte)1;
+        byte[] compressdata;
+        byte iscomress;
+        if (len >= 2048) {
+            compressdata = compress(data);
+            iscomress = 0;
+        } else {
+            compressdata = data;
+            iscomress = 1;
+        }
 
         byte[] storedata = new byte[compressdata.length + 5];
         byte[] datalength = new byte[4];
@@ -73,12 +80,11 @@ public class Producer {
 
     public void flush() throws Exception {
         MessageStore.store.flush();
-        System.out.println("flush");
     }
 
     public byte[] compress(byte[] indata) {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        Deflater compressor = new Deflater(4);
+        Deflater compressor = new Deflater(3);
         try {
             compressor.setInput(indata);
             compressor.finish();
