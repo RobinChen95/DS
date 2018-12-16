@@ -54,14 +54,11 @@ public class Consumer {
         try {
             if (!in.hasRemaining()) return null;
             byte[] datalength = new byte[4];
-            for (int i = 0; i < 4; i++) {
-                datalength[i]=in.get();
-            }
+            in.get(datalength);
+
             int length = ((datalength[0] & 0xff) << 24) | ((datalength[1] & 0xff) << 16) | ((datalength[2] & 0xff) << 8) | (datalength[3] & 0xff);
             byte[] data = new byte[length];
-            for (int i = 0; i < length; i++) {
-                data[i]=in.get();
-            }
+            in.get(data);
             return data;
         } catch (Exception e) {
             e.printStackTrace();
