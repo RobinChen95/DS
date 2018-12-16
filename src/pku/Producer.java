@@ -2,7 +2,6 @@ package pku;
 
 import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.zip.Deflater;
 
@@ -12,7 +11,9 @@ import java.util.zip.Deflater;
 
 public class Producer {
     HashMap<String, Character> keyTable = buildKeyTable();
-
+    String tempValue;
+    int tempLen;
+    String topic;
     //生成指定Topic的字节消息，并返回
     public ByteMessage createBytesMessageToTopic(String topic, byte[] body) {
         ByteMessage msg = new DefaultMessage(body);
@@ -23,9 +24,7 @@ public class Producer {
 
     //将字节消息发送出去
     public void send(ByteMessage defaultMessage) {
-        String topic = defaultMessage.headers().getString("Topic");
-        String tempValue;
-        int tempLen;
+        topic = defaultMessage.headers().getString("Topic");
 
         //消息头
         DefaultKeyValue header = (DefaultKeyValue) defaultMessage.headers();
@@ -38,10 +37,7 @@ public class Producer {
         data[0] = (byte) headnum;
         int idx = 1;
 
-        Iterator<String> it = headkey.iterator();
-        String key;
-        while (it.hasNext()){
-            key = it.next();
+        for (String key : headkey) {
             if (keyTable.containsKey(key)) {
                 data[idx++] = (byte) keyTable.get(key).charValue();
                 tempValue = headers.get(key);
@@ -52,19 +48,6 @@ public class Producer {
                 idx += tempLen;
             }
         }
-
-        /*for (String key : headkey) {
-            if (keyTable.containsKey(key)) {
-                data[idx++] = (byte) keyTable.get(key).charValue();
-                tempValue = headers.get(key);
-                tempLen = tempValue.length();
-                data[idx++] = (byte) ((tempLen >>> 8) & 0xff);
-                data[idx++] = (byte) ((tempLen >>> 0) & 0xff);
-                System.arraycopy(tempValue.getBytes(), 0, data, idx, tempLen);
-                idx += tempLen;
-            }
-        }*/
-
 
         System.arraycopy(bytebody, 0, data, idx, bytebody.length);
 
