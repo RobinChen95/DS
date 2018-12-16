@@ -55,8 +55,8 @@ public class Producer {
         System.arraycopy(bytebody, 0, data, idx, bytebody.length);
 
         //数据压缩
-        byte[] compressdata = (len>2048)? compress(data):data;
-        byte iscomress = (len>2048)?(byte)0:(byte) 1;
+        byte[] compressdata = (len>1024)? compress(data):data;
+        byte iscomress = (len>1024)?(byte)0:(byte)1;
 
         byte[] storedata = new byte[compressdata.length + 5];
         byte[] datalength = new byte[4];
@@ -78,7 +78,7 @@ public class Producer {
 
     public byte[] compress(byte[] indata) {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        Deflater compressor = new Deflater(3);
+        Deflater compressor = new Deflater(4);
         try {
             compressor.setInput(indata);
             compressor.finish();
