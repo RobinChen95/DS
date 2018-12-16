@@ -41,10 +41,8 @@ public class Consumer {
             }
             byte[] redata = new byte[data.length - 1];
             System.arraycopy(data, 1, redata, 0, data.length - 1);
-            if ( data[0] == 0) {
-                try {
-                    return getMessage(uncompress(redata));
-                } catch (DataFormatException e) {}
+            if ((int) data[0] == 0) {
+                return getMessage(uncompress(redata));
             }
             else return getMessage(redata);
         }
@@ -72,7 +70,7 @@ public class Consumer {
     }
 
 
-    public byte[] uncompress(byte[] input) throws DataFormatException {
+    public byte[] uncompress(byte[] input)  {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         Inflater decompressor = new Inflater();
         try {
@@ -82,6 +80,8 @@ public class Consumer {
                 int count = decompressor.inflate(buf);
                 bos.write(buf, 0, count);
             }
+        } catch (DataFormatException e) {
+            e.printStackTrace();
         } finally {
             decompressor.end();
         }

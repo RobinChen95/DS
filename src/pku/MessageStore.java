@@ -55,11 +55,15 @@ public class MessageStore {
     }
 
 
-    public void flush() throws Exception {
+    public void flush()  {
         Iterator<Map.Entry<String, BufferedOutputStream>> iter = outMap.entrySet().iterator();
         while (iter.hasNext()) {
             OutputStream val = iter.next().getValue();
-            val.flush();
+            try {
+                val.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 

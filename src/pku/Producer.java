@@ -75,7 +75,7 @@ public class Producer {
         MessageStore.store.push(storedata, topic);
     }
 
-    public void flush() throws Exception {
+    public void flush() {
         MessageStore.store.flush();
     }
 
