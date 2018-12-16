@@ -31,9 +31,6 @@ public class MessageStore {
                 outData.get(Topic).add(data[i]);
             }
             if (outData.get(Topic).size()>10000){
-                for (int i = 0; i < data.length; i++) {
-                    outData.get(Topic).add(data[i]);
-                }
                 byte[] temp = new byte[outData.get(Topic).size()];
                 for (int i = 0; i < outData.get(Topic).size(); i++) {
                     temp[i]= outData.get(Topic).get(i);
