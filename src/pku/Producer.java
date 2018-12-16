@@ -2,6 +2,7 @@ package pku;
 
 import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.zip.Deflater;
 
@@ -37,9 +38,10 @@ public class Producer {
         data[0] = (byte) headnum;
         int idx = 1;
 
-
-
-        for (String key : headkey) {
+        Iterator<String> it = headkey.iterator();
+        String key;
+        while (it.hasNext()){
+            key = it.next();
             if (keyTable.containsKey(key)) {
                 data[idx++] = (byte) keyTable.get(key).charValue();
                 tempValue = headers.get(key);
@@ -50,6 +52,18 @@ public class Producer {
                 idx += tempLen;
             }
         }
+
+        /*for (String key : headkey) {
+            if (keyTable.containsKey(key)) {
+                data[idx++] = (byte) keyTable.get(key).charValue();
+                tempValue = headers.get(key);
+                tempLen = tempValue.length();
+                data[idx++] = (byte) ((tempLen >>> 8) & 0xff);
+                data[idx++] = (byte) ((tempLen >>> 0) & 0xff);
+                System.arraycopy(tempValue.getBytes(), 0, data, idx, tempLen);
+                idx += tempLen;
+            }
+        }*/
 
 
         System.arraycopy(bytebody, 0, data, idx, bytebody.length);
