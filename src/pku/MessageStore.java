@@ -13,7 +13,6 @@ public class MessageStore {
 
     String path = "data" + File.separator;
     final HashMap<String, BufferedOutputStream> outMap = new HashMap<>();
-    final HashMap<String, ArrayList<Byte>> outData = new HashMap<>();
 
     /**
      * @param data
@@ -24,27 +23,16 @@ public class MessageStore {
             synchronized (this) {
                 if (!outMap.containsKey(Topic)) {
                     outMap.put(Topic, new BufferedOutputStream(new FileOutputStream(path + Topic)));
-                    outData.put(Topic,new ArrayList<>());
                 }
             }
-            for (int i = 0; i < data.length; i++) {
-                outData.get(Topic).add(data[i]);
-            }
-            if (outData.get(Topic).size()>10000){
-                byte[] temp = new byte[outData.get(Topic).size()];
-                for (int i = 0; i < outData.get(Topic).size(); i++) {
-                    temp[i]= outData.get(Topic).get(i);
-                }
-                OutputStream out = outMap.get(Topic);
-                out.write(temp);
-                outData.replace(Topic,new ArrayList<>());
-            }
+            OutputStream out = outMap.get(Topic);
+            out.write(data);
         } catch (Exception e) {
         }
     }
 
 
-    public synchronized ArrayList<BufferedInputStream> pullTopicStream(List<String> topics) {
+    public ArrayList<BufferedInputStream> pullTopicStream(List<String> topics) {
         ArrayList<BufferedInputStream> datastreams = new ArrayList<>();
         try {
             for (String topic : topics) {

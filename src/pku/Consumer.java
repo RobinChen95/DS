@@ -35,7 +35,6 @@ public class Consumer {
     public ByteMessage poll() {
         byte[] data;
         for (int i = rePos; i < inListSize; i++) {
-
             in = inList.get(rePos);
             data = readData();
             if (data == null) {
