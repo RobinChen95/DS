@@ -75,7 +75,7 @@ public class DemoTester {
                         pushCount.incrementAndGet();
                     }
                 }
-                System.out.println(String.format("thread pull %s", topics.size() * PUSH_COUNT));
+                System.out.println(String.format("thread push %s", topics.size() * PUSH_COUNT));
                 producer.flush();
             } catch (Exception e) {
                 e.printStackTrace();

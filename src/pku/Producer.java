@@ -13,7 +13,6 @@ public class Producer {
     HashMap<String, Character> keyTable = buildKeyTable();
     String tempValue;
     int tempLen;
-    int count=0;
 
 
 
@@ -56,16 +55,8 @@ public class Producer {
         System.arraycopy(bytebody, 0, data, idx, bytebody.length);
 
         //数据压缩
-        byte[] compressdata;
-        byte iscomress;
-        if (len >= 512) {
-            count++;
-            compressdata = compress(data);
-            iscomress = 0;
-        } else {
-            compressdata = data;
-            iscomress = 1;
-        }
+        byte[] compressdata = (len>2048)? compress(data):data;
+        byte iscomress = (len>2048)?(byte)0:(byte) 1;
 
         byte[] storedata = new byte[compressdata.length + 5];
         byte[] datalength = new byte[4];
@@ -83,7 +74,6 @@ public class Producer {
     public void flush() throws Exception {
         MessageStore.store.flush();
         System.out.println("flush");
-        System.out.println("count:"+count);
     }
 
     public byte[] compress(byte[] indata) {
