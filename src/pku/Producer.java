@@ -1,119 +1,250 @@
 package pku;
 
-import java.io.ByteArrayOutputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.HashMap;
-import java.util.Set;
-import java.util.zip.Deflater;
+import java.util.LinkedList;
+import java.util.List;
 
-/**
- * 生产者
- */
 
 public class Producer {
-    HashMap<String, Character> keyTable = buildKeyTable();
+	private boolean first = true;
+	private boolean firstWrite = true;
+	private int id;
+	private int count = 0;
+	static final int COUNT_SIZE = 5000;
+	HashMap<String, LinkedList<ByteMessage>> msgs = new HashMap<>();
+	static final String[] keylist = { "MessageId", "Topic", "BornTimestamp", "BornHost", "StoreTimestamp", "StoreHost",
+			"StartTime", "StopTime", "Timeout", "Priority", "Reliability", "SearchKey", "ScheduleExpression",
+			"ShardingKey", "ShardingPartition", "TraceId" };
+	WriteToFile w;
 
-    //生成指定Topic的字节消息，并返回
-    public ByteMessage createBytesMessageToTopic(String topic, byte[] body) {
-        ByteMessage msg = new DefaultMessage(body);
-        msg.putHeaders("Topic", topic);
-        return msg;
-    }
-
-
-    //将字节消息发送出去
-    public void send(ByteMessage defaultMessage) {
-        String topic = defaultMessage.headers().getString("Topic");
-        String tempValue;
-        int tempLen;
-
-        //消息头
-        DefaultKeyValue header = (DefaultKeyValue) defaultMessage.headers();
-        HashMap<String, String> headers = ((DefaultKeyValue) defaultMessage.headers()).getMap2();
-        byte[] bytebody = defaultMessage.getBody();
-        Set<String> headkey = headers.keySet();
-        int headnum = headkey.size();
-        int len = header.getLength() + 3*headnum+1 + bytebody.length;
-        byte[] data = new byte[len];
-        data[0] = (byte) headnum;
-        int idx = 1;
-
-        for (String key : headkey) {
-            if (keyTable.containsKey(key)) {
-                data[idx++] = (byte) keyTable.get(key).charValue();
-                tempValue = headers.get(key);
-                tempLen = tempValue.length();
-                data[idx++] = (byte) ((tempLen >>> 8) & 0xff);
-                data[idx++] = (byte) ((tempLen >>> 0) & 0xff);
-                System.arraycopy(tempValue.getBytes(), 0, data, idx, tempLen);
-                idx += tempLen;
+    {
+        boolean executed = false;
+        synchronized (this){
+            if (!executed){
+                File file = new File("data");
+                if (file.exists())
+                    deleteDir(file);
+                file.mkdirs();
+                executed = true;
             }
         }
-
-        System.arraycopy(bytebody, 0, data, idx, bytebody.length);
-
-        //数据压缩
-        byte[] compressdata;
-        byte iscomress;
-        if (len >= 1024) {
-            compressdata = compress(data);
-            iscomress = 0;
-        } else {
-            compressdata = data;
-            iscomress = 1;
-        }
-
-        byte[] storedata = new byte[compressdata.length + 5];
-        byte[] datalength = new byte[4];
-        datalength[3] = (byte) (compressdata.length + 1 & 0xFF);
-        datalength[2] = (byte) ((compressdata.length + 1) >>> 8 & 0xFF);
-        datalength[1] = (byte) ((compressdata.length + 1) >>> 16 & 0xFF);
-        datalength[0] = (byte) ((compressdata.length + 1) >>> 24);
-        System.arraycopy(datalength, 0, storedata, 0, 4);
-        storedata[4] = iscomress;
-        System.arraycopy(compressdata, 0, storedata, 5, compressdata.length);
-
-        MessageStore.store.push(storedata, topic);
     }
 
-    public void flush() {
-        MessageStore.store.flush();
-    }
-
-    public byte[] compress(byte[] indata) {
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        Deflater compressor = new Deflater(3);
-        try {
-            compressor.setInput(indata);
-            compressor.finish();
-            final byte[] buf = new byte[indata.length];
-            while (!compressor.finished()) {
-                int count = compressor.deflate(buf);
-                bos.write(buf, 0, count);
+    private static boolean deleteDir(File dir) {
+        if (dir.isDirectory()) {
+            String[] children = dir.list();
+            //递归删除目录中的子目录下
+            for (int i = 0; i < children.length; i++) {
+                boolean success = deleteDir(new File(dir, children[i]));
+                if (!success) {
+                    return false;
+                }
             }
-        } finally {
-            compressor.end();
         }
-        return bos.toByteArray();
+        // 目录此时为空，可以删除
+        return dir.delete();
     }
 
-    private HashMap<String, Character> buildKeyTable() {
-        HashMap<String, Character> keyTable = new HashMap<>();
-        keyTable.put("MessageId", 'a');
-        keyTable.put("Topic", 'b');
-        keyTable.put("BornTimestamp", 'c');
-        keyTable.put("BornHost", 'd');
-        keyTable.put("StoreTimestamp", 'e');
-        keyTable.put("StoreHost", 'f');
-        keyTable.put("StartTime", 'g');
-        keyTable.put("StopTime", 'h');
-        keyTable.put("Timeout", 'i');
-        keyTable.put("Priority", 'j');
-        keyTable.put("Reliability", 'k');
-        keyTable.put("SearchKey", 'l');
-        keyTable.put("ScheduleExpression", 'm');
-        keyTable.put("ShardingKey", 'n');
-        keyTable.put("ShardingPartition", 'o');
-        keyTable.put("TraceId", 'p');
-        return keyTable;
-    }
+	public ByteMessage createBytesMessageToTopic(String topic, byte[] body) throws Exception {
+		ByteMessage msg = new DefaultMessage(body);
+		msg.putHeaders(MessageHeader.TOPIC, topic);
+		return msg;
+	}
+
+	public void send(ByteMessage defaultMessage) throws Exception {
+		String topic = defaultMessage.headers().getString(MessageHeader.TOPIC);
+		if (first) {
+			id = (int) Thread.currentThread().getId() % 4;
+			first = false;
+		}
+		if (!msgs.containsKey(topic)) {
+			msgs.put(topic, new LinkedList<ByteMessage>());
+		}
+		// 加入消息
+		((LinkedList<ByteMessage>) msgs.get(topic)).add(defaultMessage);
+		if (++count >= COUNT_SIZE) {
+			// WriteToFile(id);
+			if (!firstWrite) {
+				w.join();
+			} else {
+				firstWrite = false;
+			}
+			w = new WriteToFile(msgs);
+			w.start();
+			msgs = new HashMap<String, LinkedList<ByteMessage>>();
+			count = 0;
+		}
+	}
+
+	public void flush() throws Exception {
+		// MessageStore.store.WriteToFile((int)Thread.currentThread().getId()%4);//一个线程结束时调用
+	}
+
+	class WriteToFile extends Thread {
+
+		private HashMap<String, LinkedList<ByteMessage>> msgs = new HashMap<>();
+
+		public WriteToFile(HashMap msgs) {
+			this.msgs = msgs;
+		}
+
+		@Override
+		public void run() {
+			try {
+				byte[] buf = new byte[205000];
+				for (Object key : msgs.keySet()) {// 先取出Key值，将相同的Topic放到一个文件
+					FileOutputStream fos = new FileOutputStream("./data/" + (String) key + id + ".txt", true);
+					BufferedOutputStream bos = new BufferedOutputStream(fos);
+					List<ByteMessage> msglist = (List<ByteMessage>) msgs.get(key);
+					// RandomAccessFile
+					for (ByteMessage msg : msglist) {
+//						int buf_size = msg.getBody().length + 512;
+						int len = 0;
+						byte[] hkey = new byte[2];
+						byte[] vtype = new byte[4];
+						for (int i = 0; i < 16; ++i) {
+							Object obj = msg.headers().getObj(keylist[i]);
+							if (obj != null) {
+								int j = i / 4;
+								int off = i % 4;
+								if (obj instanceof Integer) {
+									
+								} else if (obj instanceof Double) {
+									if (off == 0) {
+										vtype[j] = (byte) (vtype[j] | (byte) 0x40);
+									} else if (off == 1) {
+										vtype[j] = (byte) (vtype[j] | (byte) 0x10);
+									} else if (off == 2) {
+										vtype[j] = (byte) (vtype[j] | (byte) 0x04);
+									} else {
+										vtype[j] = (byte) (vtype[j] | (byte) 0x01);
+									}
+								} else if (obj instanceof Long) {
+									if (off == 0) {
+										vtype[j] = (byte) (vtype[j] | (byte) 0x80);
+									} else if (off == 1) {
+										vtype[j] = (byte) (vtype[j] | (byte) 0x20);
+									} else if (off == 2) {
+										vtype[j] = (byte) (vtype[j] | (byte) 0x08);
+									} else {
+										vtype[j] = (byte) (vtype[j] | (byte) 0x02);
+									}
+								} else {
+									if (off == 0) {
+										vtype[j] = (byte) (vtype[j] | (byte) 0xc0);
+									} else if (off == 1) {
+										vtype[j] = (byte) (vtype[j] | (byte) 0x30);
+									} else if (off == 2) {
+										vtype[j] = (byte) (vtype[j] | (byte) 0x0c);
+									} else {
+										vtype[j] = (byte) (vtype[j] | (byte) 0x03);
+									}
+								}
+								String h = keylist[i];
+								switch (h) {
+								case "MessageId":
+									hkey[0] = (byte) (hkey[0] | (byte) 0x80);
+									break;
+								case "Topic":
+									hkey[0] = (byte) (hkey[0] | 0x40);
+									break;
+								case "BornTimestamp":
+									hkey[0] = (byte) (hkey[0] | 0x20);
+									break;
+								case "BornHost":
+									hkey[0] = (byte) (hkey[0] | 0x10);
+									break;
+								case "StoreTimestamp":
+									hkey[0] = (byte) (hkey[0] | 0x08);
+									break;
+								case "StoreHost":
+									hkey[0] = (byte) (hkey[0] | 0x04);
+									break;
+								case "StartTime":
+									hkey[0] = (byte) (hkey[0] | 0x02);
+									break;
+								case "StopTime":
+									hkey[0] = (byte) (hkey[0] | 0x01);
+									break;
+								case "Timeout":
+									hkey[1] = (byte) (hkey[1] | (byte) 0x80);
+									break;
+								case "Priority":
+									hkey[1] = (byte) (hkey[1] | 0x40);
+									break;
+								case "Reliability":
+									hkey[1] = (byte) (hkey[1] | 0x20);
+									break;
+								case "SearchKey":
+									hkey[1] = (byte) (hkey[1] | 0x10);
+									break;
+								case "ScheduleExpression":
+									hkey[1] = (byte) (hkey[1] | 0x08);
+									break;
+								case "ShardingKey":
+									hkey[1] = (byte) (hkey[1] | 0x04);
+									break;
+								case "ShardingPartition":
+									hkey[1] = (byte) (hkey[1] | 0x02);
+									break;
+								case "TraceId":
+									hkey[1] = (byte) (hkey[1] | 0x01);
+									break;
+								}
+							}
+						}
+						System.arraycopy(hkey, 0, buf, len, 2);
+						len += 2;
+						System.arraycopy(vtype, 0, buf, len, 4);
+						len += 4;
+						for (int i = 0; i < 16; ++i) {
+							Object obj = msg.headers().getObj(keylist[i]);
+							if (obj != null) {
+								if (obj instanceof Integer) {
+//									buf[len++] = 'i';
+									System.arraycopy(Utils.intToBytes((int) obj), 0, buf, len, 4);
+									len += 4;
+								} else if (obj instanceof Double) {
+//									buf[len++] = 'd';
+									System.arraycopy(Utils.doubleToBytes((double) obj), 0, buf, len, 8);
+									len += 8;
+								} else if (obj instanceof Long) {
+//									buf[len++] = 'l';
+									System.arraycopy(Utils.longToBytes((long) obj), 0, buf, len, 8);
+									len += 8;
+								} else {
+//									buf[len++] = 's';
+									System.arraycopy(Utils.shortToBytes((short) ((String) obj).length()), 0, buf, len, 2);
+									len += 2;
+									System.arraycopy(((String) obj).getBytes(), 0, buf, len, ((String) obj).length());
+									len += ((String) obj).length();
+								}
+							}
+						}
+						System.arraycopy(Utils.intToBytes(msg.getBody().length), 0, buf, len, 4);
+						len += 4;
+						System.arraycopy(msg.getBody(), 0, buf, len, msg.getBody().length);
+						len += msg.getBody().length;
+
+						if (len > 1024) {
+							byte[] com_buf = Utils.compress(buf, 0, len);
+							bos.write('c');
+							bos.write(Utils.intToBytes(com_buf.length));
+							bos.write(com_buf);
+						} else {
+							bos.write('u');
+							bos.write(Utils.shortToBytes((short) len));
+							bos.write(buf, 0, len);
+						}
+					}
+					bos.flush();
+				}
+			} catch (Exception e) {
+				// e.printStackTrace();
+			}
+		}
+	}
 }

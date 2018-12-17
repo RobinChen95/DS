@@ -1,10 +1,5 @@
 package pku;
 
-import pku.ByteMessage;
-import pku.Consumer;
-import pku.MessageHeader;
-import pku.Producer;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -75,7 +70,7 @@ public class DemoTester {
                         pushCount.incrementAndGet();
                     }
                 }
-                System.out.println(String.format("thread push %s", topics.size() * PUSH_COUNT));
+                System.out.println(String.format("thread pull %s", topics.size() * PUSH_COUNT));
                 producer.flush();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -210,27 +205,9 @@ public class DemoTester {
         System.out.println(String.format("pull 结束 time cost %d pull count %d", time3 - time2, pullCount.get()));
     }
 
-    private static boolean deleteDir(File dir) {
-        if (dir.isDirectory()) {
-            String[] children = dir.list();
-            //递归删除目录中的子目录下
-            for (int i = 0; i < children.length; i++) {
-                boolean success = deleteDir(new File(dir, children[i]));
-                if (!success) {
-                    return false;
-                }
-            }
-        }
-        // 目录此时为空，可以删除
-        return dir.delete();
-    }
 
     public static void main(String args[]) {
         try {
-            File file = new File("data");
-            if (file.exists())
-                deleteDir(file);
-            file.mkdirs();
             testPush();
             testPull();
         } catch (Exception e) {

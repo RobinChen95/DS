@@ -2,21 +2,21 @@ package pku;
 
 /**
  *
- * 字节信息接口
- * 字节信息的基本结构为：消息头Header+消息主体Body
+ * 字节消息接口
  *
  */
-
 public interface ByteMessage {
+
+    //设置消息头
+    void setHeaders(KeyValue headers);
+    //获取字节数据
+    byte[] getBody();
+    //设置字节数据
+    void setBody(byte[] body);
 
     public KeyValue headers();
 
-    byte[] getBody();
-
-    void setHeaders(KeyValue header);
-
-    void setBody(byte[] body);
-
+    //设置header
     public ByteMessage putHeaders(String key, int value);
 
     public ByteMessage putHeaders(String key, long value);
