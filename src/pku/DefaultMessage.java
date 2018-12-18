@@ -1,21 +1,18 @@
 package pku;
 
-import java.io.Serializable;
+import java.io.OutputStream;
+import java.util.HashMap;
 
 /**
- * Created by yangxiao on 2017/11/14.
- *
+ *消息的实现
  */
-public class DefaultMessage implements ByteMessage,Serializable{
+public class DefaultMessage implements ByteMessage{
 
     private KeyValue headers = new DefaultKeyValue();
     private byte[] body;
 
     public void setHeaders(KeyValue headers) {
         this.headers = headers;
-    }
-    
-    public DefaultMessage() {
     }
 
     public DefaultMessage(byte[] body) {

@@ -1,216 +1,323 @@
 package pku;
-
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.*;
+import java.nio.ByteBuffer;
 import java.util.*;
-
+import java.util.zip.*;
+/**
+ * 消费者
+ */
 
 public class Consumer {
-	static final String[] keylist = {"MessageId", "Topic", "BornTimestamp", "BornHost", "StoreTimestamp", "StoreHost",
-			"StartTime", "StopTime", "Timeout", "Priority", "Reliability", "SearchKey", "ScheduleExpression", "ShardingKey",
-			"ShardingPartition", "TraceId"};
-	private List<String> topics = new LinkedList<>();
-	private int currentTopic = 0;
-	private String queue;
-	private Map<String, LinkedList<BufferedInputStream>> topicInput = new HashMap<>();
-	private int readPos = 0;
-	private byte[] size1 = new byte[1];
-	private byte[] size2 = new byte[2];
-	private byte[] size4 = new byte[4];
-	private byte[] size8 = new byte[8];
-	
+    static final String[] headerBank = {
+            //Int
+            MessageHeader.PRIORITY,
+            //Long
+            MessageHeader.BORN_TIMESTAMP,
+            MessageHeader.STORE_TIMESTAMP,
+            MessageHeader.START_TIME,
+            MessageHeader.STOP_TIME,
+            MessageHeader.TIMEOUT,
+            //String
+            MessageHeader.MESSAGE_ID,
+            MessageHeader.TOPIC,
+            MessageHeader.BORN_HOST,
+            MessageHeader.STORE_HOST,
+            MessageHeader.RELIABILITY,
+            MessageHeader.SEARCH_KEY,
+            MessageHeader.SCHEDULE_EXPRESSION,
+            MessageHeader.SHARDING_KEY,
+            MessageHeader.SHARDING_PARTITION,
+            MessageHeader.TRACE_ID
+    };
 
-	private static byte[] getBooleanArray2(byte[] b) {	//only for b.length == 2
-		byte[] array = new byte[16];
-		for (int i = 15; i >= 0; --i) {
-			if (i >= 8) {
-				array[i] = (byte) (b[1] & 1);
-				b[1] = (byte) (b[1] >> 1);
-			} else {
-				array[i] = (byte) (b[0] & 1);
-				b[0] = (byte) (b[0] >> 1);
-			}
-		}
-		return array;
-	}
-	
-	private static byte[] getBooleanArray4(byte[] b) {	//only for b.length == 4
-		byte[] array = new byte[32];
-		for (int i = 31; i >= 0; --i) {
-			if (i >= 24) {
-				array[i] = (byte) (b[3] & 1);
-				b[3] = (byte) (b[3] >> 1);
-			} else if (i >= 16){
-				array[i] = (byte) (b[2] & 1);
-				b[2] = (byte) (b[2] >> 1);
-			} else if (i >= 8) {
-				array[i] = (byte) (b[1] & 1);
-				b[1] = (byte) (b[1] >> 1);
-			} else {
-				array[i] = (byte) (b[0] & 1);
-				b[0] = (byte) (b[0] >> 1);
-			}
-		}
-		return array;
-	}
+    private final int ONE_READ_SIZE = 600;
+    private ArrayList<String> topics = new ArrayList<>();
+    private ArrayList<ByteMessage> messageList = new ArrayList<>();
+    private int readMesgListPos = 0;
+    byte[] array = new byte[2560000];
+    private ByteBuffer bufferUncomp = ByteBuffer.wrap(array);
+    byte[] singleMessage = null;
+    private HashMap<String, ArrayList<BufferedInputStream>> topicInput = new HashMap<>();
+    int readPos = 0;
+    String queue;
+    ByteMessage re = null;
+    int className = 0;
+    int currentReadMesg = 0;
+    File file = null;
+    File[] arrayFile = null;
+    int uncompLength;
+    int messageLength;
+    //将消费者订阅的topic进行绑定
+    public void attachQueue(String queueName, Collection<String> t) {
+//        if (queue != null) {
+//            throw new Exception("只允许绑定一次");
+//        }
+        queue = queueName;
+        topics.addAll(t);
+    }
 
-	private ByteMessage readMessage(BufferedInputStream b) throws Exception {
 
-		ByteMessage message = new DefaultMessage();
+    //每次消费读取一个message
+    public ByteMessage poll() throws Exception {
 
-		// Get 'u' or 'c'
-		if (b==null) return null;
-		else {
-			if (b.read(size1) == -1) {
-				b.close();
-				return null;
-			}
-		}
 
-		byte[] msg = null;
-		if (size1[0] == 'u') {
-			// Get size of msg;
-			b.read(size2);
-			// Get msg;
-			msg = new byte[Utils.bytesToShort(size2)];
-			b.read(msg);
-		} else if ((size1[0] == 'c')) {
-			// Get size of msg;
-			b.read(size4);
-			// Get msg;
-			byte[] msg_c = new byte[Utils.bytesToInt(size4)];
-			b.read(msg_c);
-			msg = Utils.uncompress(msg_c);
-		}
-		// BUG!!! 可能恰好有'u'/'c'
-//		else {
-//			b.close();
-//			return null;
-//		}
+        String topicName = null;
+        while (true){
+            topicName = topics.get(readPos);
+            re = loadByteMessage(topicName);
+            if (re == null){
+                readPos++;
+                if (readPos >= topics.size()){
+                    return null;
+                }
+            } else {
+                break;
+            }
+        }
 
-		System.arraycopy(msg, readPos, size2, 0, 2);
-		readPos += 2;
-		byte[] array1 = getBooleanArray2(size2);
-		System.arraycopy(msg, readPos, size4, 0, 4);
-		readPos += 4;
-		byte[] array2 = getBooleanArray4(size4);
-		for (int i = 0; i < 16; ++i) {
-			if (array1[i] == 1) {
-				if (array2[i << 1] == 0) {
-					if (array2[(i << 1) + 1] == 0) {
-						System.arraycopy(msg, readPos, size4, 0, 4);
-						readPos += 4;
-						message.putHeaders(keylist[i], Utils.bytesToInt(size4));
-					} else {
-						System.arraycopy(msg, readPos, size8, 0, 8);
-						readPos += 8;
-						message.putHeaders(keylist[i], Utils.bytesToDouble(size8));
-					}
-				} else {
-					if (array2[(i << 1) + 1] == 0) {
-						System.arraycopy(msg, readPos, size8, 0, 8);
-						readPos += 8;
-						message.putHeaders(keylist[i], Utils.bytesToLong(size8));
-					} else {
-						System.arraycopy(msg, readPos, size2, 0, 2);
-						readPos += 2;
-						int slen = Utils.bytesToShort(size2);
-						byte[] s = new byte[slen];
-						System.arraycopy(msg, readPos, s, 0, slen);
-						readPos += slen;
-						message.putHeaders(keylist[i], new String(s));
-					}
-				}
-			}
-		}
-		System.arraycopy(msg, readPos, size4, 0, 4);
-		readPos += 4;
-		int blen = Utils.bytesToInt(size4);
-		byte[] s = new byte[blen];
-		System.arraycopy(msg, readPos, s, 0, blen);
-		// 重置readPos(未加上blen，因无必要)
-		readPos = 0;
-		message.setBody(s);
+        return re;
+    }
 
-		return message;
-	}
+    public ByteMessage loadByteMessage(String topicName) throws IOException {
 
-	private ByteMessage loadByteMessage(String topic) throws Exception {
 
-		// If InputStream of current topic is opened in the first place;
-		// Then open it and put it in the map;
+        //ByteMessage result;
+        while (true) {
+            if (messageList.isEmpty()) {
+                if (!topicInput.containsKey(topicName)) {
+                    try {
+                        file = new File("data/" + topicName);
+                        if (!file.exists()) {
+                            return null;
+                        }
+                        arrayFile = file.listFiles();
+                        topicInput.put(topicName, new ArrayList<>());
+                        for (File x : arrayFile) {
+                            topicInput.get(topicName).add(new BufferedInputStream(new FileInputStream(x)));
+                        }
 
-		if (!topicInput.containsKey(topic)) {
-			LinkedList<BufferedInputStream> bis_list = new LinkedList<>();
-			for (int i = 0; i < 4; ++i) {
-//				try {
-//					FileChannel fci = new RandomAccessFile("./data/" + topic + i + ".txt", "r").getChannel();
-//					MappedByteBuffer mbbi = fci.map(FileChannel.MapMode.READ_ONLY, 0, fci.size());
-//					mbbi_list.add(mbbi);
-//				} catch (Exception e) {
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                for (BufferedInputStream x : topicInput.get(topicName)) {
+                    try {
+                        messageList.addAll(readMessage(x));
+                    } catch (NullPointerException e) {
+                        continue;
+                    }
+
+                    readMesgListPos = 0;
+                    break;
+                }
+                if (messageList.isEmpty()) {
+                    return null;
+                }
+            }
+
+            if (readMesgListPos < currentReadMesg) {
+                readMesgListPos++;
+                return messageList.get(readMesgListPos - 1);
+            } else {
+                messageList.clear();
+            }
+        }
+
+    }
+
+    public ArrayList<ByteMessage> readMessage(BufferedInputStream buffer) throws IOException {
+        ArrayList<ByteMessage> result = new ArrayList<>();
+        //uncompLength = 0;
+        //int messageLength = 0;
+
+//        选择压缩版本
+        byte[] length = new byte[4];
+        if (buffer.read(length) == -1) {
+            return null;
+        }
+
+        int isCompress = toInt(length);
+        buffer.read(length);
+        int allMessageLength = toInt(length);
+        byte[] msg = new byte[allMessageLength];
+        buffer.read(msg);
+        if (isCompress == 1) {
+            try {
+            uncompLength = uncompress(msg, array);
+            bufferUncomp.limit(uncompLength);
+            } catch (DataFormatException e){
+                e.printStackTrace();
+            }
+            int i;
+            for (i = 0; i < ONE_READ_SIZE; i++){
+                if (bufferUncomp.remaining() == 0){
+                    currentReadMesg = i;
+                    bufferUncomp.clear();
+                    return result;
+                }
+                messageLength = bufferUncomp.getInt();
+                singleMessage = new byte[messageLength];
+                bufferUncomp.get(singleMessage);
+                result.add(byteArray2Message(singleMessage));
+            }
+            currentReadMesg = i;
+        } else {
+            bufferUncomp.put(msg, 0, msg.length);
+            bufferUncomp.flip();
+            int i = 0;
+            for (i = 0; i < ONE_READ_SIZE; i++){
+
+                if (bufferUncomp.remaining() == 0){
+                    currentReadMesg = i;
+                    bufferUncomp.clear();
+                    return result;
+                }
+                messageLength = bufferUncomp.getInt();
+                singleMessage = new byte[messageLength];
+                bufferUncomp.get(singleMessage);
+                result.add(byteArray2Message(singleMessage));
+            }
+            currentReadMesg = i;
+        }
+
+
+//        有压缩版本
+//        byte[] length = new byte[4];
+//        if (buffer.read(length) == -1) {
+//            return null;
+//        }
 //
-//				}
-				File f = new File("./data/" + topic + i + ".txt");
-				if (f.exists()) {
-					BufferedInputStream bis = new BufferedInputStream(new FileInputStream(f));
-					bis_list.add(bis);
-				}
-			}
-			topicInput.put(topic, bis_list);
-		}
+//        int allMessageLength = toInt(length);
+//
+//        byte[] msg = new byte[allMessageLength];
+//        buffer.read(msg);
+//
+//        try {
+//            uncompLength = uncompress(msg, array);
+//            bufferUncomp.limit(uncompLength);
+//        } catch (DataFormatException e){
+//            e.printStackTrace();
+//        }
+//        int i;
+//        for (i = 0; i < ONE_READ_SIZE; i++){
+//            if (bufferUncomp.remaining() == 0){
+//                currentReadMesg = i;
+//                bufferUncomp.clear();
+//                return result;
+//            }
+//            messageLength = bufferUncomp.getInt();
+//            singleMessage = new byte[messageLength];
+//            bufferUncomp.get(singleMessage);
+//            result.add(byteArray2Message(singleMessage));
+//        }
 
-		LinkedList<BufferedInputStream> bis_list = topicInput.get(topic);
-		ByteMessage msg = readMessage(bis_list.peek());
-		if (msg == null) {
-			bis_list.poll();
-			if (bis_list.isEmpty()) {
-				return null;
-			} else {
-				return readMessage(bis_list.peek());
-			}
-		} else {
-			return msg;
-		}
-	}
+//        无压缩版本的
+//        bufferUncomp.put(msg, 0, msg.length);
+//        bufferUncomp.flip();
+//        int i = 0;
+//        for (i = 0; i < ONE_READ_SIZE; i++){
+//
+//            if (bufferUncomp.remaining() == 0){
+//                currentReadMesg = i;
+//                bufferUncomp.clear();
+//                return result;
+//            }
+//            messageLength = bufferUncomp.getInt();
+//            singleMessage = new byte[messageLength];
+//            bufferUncomp.get(singleMessage);
+//            result.add(byteArray2Message(singleMessage));
+//        }
 
-	public void attachQueue(String queueName, Collection<String> t) throws Exception {
-		if (queue != null) {
-			throw new Exception("Cannot rebinding");
-		}
-		queue = queueName;
-		topics.addAll(t);
-	}
+        //currentReadMesg = i;
+        bufferUncomp.clear();
+        return result;
+    }
 
-	public ByteMessage poll() throws Exception {
-		ByteMessage re = loadByteMessage(topics.get(currentTopic));
-		if (re != null) {
-			return re;
-		} else {
-			// If re == null means that current topic isnt exist or is done with it;
-			// Move to next topic;
-			// If All of topics have been read;
-			if (++currentTopic >= topics.size())
-				return null;
-			else
-				return poll();
-		}
-	}
-	/*
-	 * //一个consumer绑定4个topic List<String> topics = new LinkedList<>(); int
-	 * readPos = 0; String queue;
-	 * 
-	 * public void attachQueue(String queueName, Collection<String> t) throws
-	 * Exception { if (queue != null) { throw new Exception("只允许绑定一次"); } queue
-	 * = queueName; topics.addAll(t); }
-	 * 
-	 * public ByteMessage poll() throws IOException { ByteMessage re =
-	 * MessageStore.store.pull(queue,topics.get(readPos)); if (re != null) {
-	 * return re; }else { readPos++; if(readPos >= topics.size()) return null;
-	 * else return poll(); } ByteMessage re = null; //先读第一个topic, 再读第二个topic...
-	 * //直到所有topic都读完了, 返回null, 表示无消息 for (int i = 0; i < topics.size(); i++) {
-	 * int index = (i + readPos) % topics.size(); re =
-	 * MessageStore.store.pull(queue, topics.get(index)); if (re != null) {
-	 * readPos = index + 1; break; } } return re; }
-	 */
+    public int toInt(byte[] bytes) {
+        return (bytes[3] & 0xff) |
+                ((bytes[2] & 0xff) << 8) |
+                ((bytes[1] & 0xff) << 16) |
+                ((bytes[0] & 0xff) << 24);
+    }
+
+    public DefaultMessage byteArray2Message(byte[] getByte) {
+        DefaultMessage message = new DefaultMessage(null);
+        KeyValue headers = new DefaultKeyValue();
+        long note_header =(Long.valueOf(getByte[0] & 0xff) << 40) + (Long.valueOf(getByte[1] & 0xff) << 32) + ((getByte[2] & 0xff) << 24) + ((getByte[3] & 0xff) << 16) + ((getByte[4] & 0xff) << 8) + ((getByte[5] & 0xff) << 0);
+        int label = 0; //标记key
+        int index = 6; //标记value
+        int check = 47; //标记note
+        for (int num = 0; num < 16; num++) { //处理16个header的key
+
+            if ((((note_header) >> check) & 1) == 1) {
+                className = (int)(((((note_header) >> check-1) & 1) << 1) + (((note_header) >> check-2) & 1));
+                switch (className){
+                    case 0:
+                        int mid = 0;
+                        int value_int = 0;
+                        for (int j = 0; j < 4; j++) {
+                            mid = getByte[index + j];
+                            mid = (mid & 0xff)<< 8*(3-j);
+                            value_int = value_int + mid;
+                        }
+                        headers.put(headerBank[label],value_int);
+                        index = index + 4;
+                        break;
+                    case 1:
+                        ByteBuffer buffer = ByteBuffer.allocate(8);
+                        buffer.put(getByte, index, 8);
+                        buffer.flip();//need flip
+                        headers.put(headerBank[label],buffer.getLong());
+                        index = index + 8;
+                        break;
+                    case 2:
+                        byte[] miid = new byte[8];
+                        System.arraycopy(getByte, index, miid,0, miid.length);
+                        long value = 0;
+                        for (int i = 0; i < 8; i++) {
+                            value |= ((long) (miid[i] & 0xff)) << (8 * i);
+                        }
+                        Double value_double = Double.longBitsToDouble(value);
+                        headers.put(headerBank[label],value_double);
+                        index = index + 8;
+                        break;
+                    case 3:
+                        String value_str = "";
+                        int value_len = getByte[index++] & 0xff;
+                        for (int j = 0; j < value_len; j++) {
+                            value_str = value_str + ((char)getByte[index++]);
+                        }
+                        headers.put(headerBank[label],value_str);
+                }
+
+            }
+            label++;
+            check = check - 3;
+        }
+        //开始处理body
+        byte[] body = new byte[getByte.length-index];
+        System.arraycopy(getByte, index, body,0, body.length);
+        message.setBody(body);
+        message.setHeaders(headers);
+
+        return message;
+    }
+
+
+    public int uncompress(byte[] input, byte[] output) throws DataFormatException {
+        int count = 0;
+        int allCount = 0;
+        Inflater decompressor = new Inflater();
+        try {
+            decompressor.setInput(input);
+            while (!decompressor.finished()) {
+                count = decompressor.inflate(output, allCount, 2560000);
+                allCount = allCount + count;
+            }
+        } finally {
+            decompressor.end();
+        }
+        return allCount;
+    }
+
 }

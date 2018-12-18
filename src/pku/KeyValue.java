@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Set;
 
 /**
- * Created by yangxiao on 2017/11/14.
  * Key-Value接口
  * 代表key-value的映射, key为String类型, value的类型只有四种:int long double String
  */

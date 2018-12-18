@@ -1,250 +1,405 @@
 package pku;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-
+import java.io.*;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.*;
+import java.util.concurrent.Future;
+import java.util.zip.*;
+import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousFileChannel;
+/**
+ * 生产者
+ */
 
 public class Producer {
-	private boolean first = true;
-	private boolean firstWrite = true;
-	private int id;
-	private int count = 0;
-	static final int COUNT_SIZE = 5000;
-	HashMap<String, LinkedList<ByteMessage>> msgs = new HashMap<>();
-	static final String[] keylist = { "MessageId", "Topic", "BornTimestamp", "BornHost", "StoreTimestamp", "StoreHost",
-			"StartTime", "StopTime", "Timeout", "Priority", "Reliability", "SearchKey", "ScheduleExpression",
-			"ShardingKey", "ShardingPartition", "TraceId" };
-	WriteToFile w;
 
-    {
-        boolean executed = false;
-        synchronized (this){
-            if (!executed){
-                File file = new File("data");
-                if (file.exists())
-                    deleteDir(file);
-                file.mkdirs();
-                executed = true;
+    //private final int ONE_WRITE_SIZE = 200;
+    private int ONE_WRITE_SIZE;
+    byte[] array = new byte[2560000];
+    private ByteBuffer buffer = ByteBuffer.wrap(array);
+    byte[] temp = new byte[1280000];
+    //private ByteBuffer bufferComp = ByteBuffer.allocateDirect(1280000);
+    private ByteBuffer mesgBuffer = ByteBuffer.allocateDirect(256256);
+    private long currentPos = 0;
+    private HashMap<String, ArrayList<ByteMessage>> msgs = new HashMap<>();
+    //private HashMap<String, AsynchronousFileChannel> topicStreams = new HashMap<>();
+    private static final Map<String, BufferedOutputStream> topicStreams = new HashMap<>();
+    private HashMap<String, Long> writePos = new HashMap<>();
+    //AsynchronousFileChannel fileChannel = null;
+    BufferedOutputStream fileChannel = null;
+    Future<Integer> operation = null;
+    boolean flag = false;
+    private int msgCount = 0;
+    private String className = null;
+    private Object hObject = null;
+    private String topic = null;
+    ArrayList<ByteMessage> messages = null;
+    int compLength = 0;
+    byte[] bytes = null;
+    int bytesLength = 0;
+    boolean nameFlag = true;
+    int isCompress = 0;
+    String name;
+
+    //ArrayList<byte[]> byteHeaders = null;
+    //int valueLength = 0;
+
+    private  final String[] headerBank = {
+            //Int
+            MessageHeader.PRIORITY,
+            //Long
+            MessageHeader.BORN_TIMESTAMP,
+            MessageHeader.STORE_TIMESTAMP,
+            MessageHeader.START_TIME,
+            MessageHeader.STOP_TIME,
+            MessageHeader.TIMEOUT,
+            //String
+            MessageHeader.MESSAGE_ID,
+            MessageHeader.TOPIC,
+            MessageHeader.BORN_HOST,
+            MessageHeader.STORE_HOST,
+            MessageHeader.RELIABILITY,
+            MessageHeader.SEARCH_KEY,
+            MessageHeader.SCHEDULE_EXPRESSION,
+            MessageHeader.SHARDING_KEY,
+            MessageHeader.SHARDING_PARTITION,
+            MessageHeader.TRACE_ID
+    };
+
+    //生成一个指定topic的message返回
+    public ByteMessage createBytesMessageToTopic(String topic, byte[] body){
+        ByteMessage msg = new DefaultMessage(body);
+        msg.putHeaders(MessageHeader.TOPIC,topic);
+        return msg;
+    }
+    //将message发送出去
+    public void send(ByteMessage defaultMessage){
+        topic = defaultMessage.headers().getString(MessageHeader.TOPIC);
+        if (!msgs.containsKey(topic)) {
+            msgs.put(topic, new ArrayList<>());
+        }
+        // 加入消息
+        if (nameFlag) {
+            name = Thread.currentThread().getName();
+            if (name.equals("Thread-1") || name.equals("Thread-3")){
+                ONE_WRITE_SIZE = 200;
+            } else {
+                ONE_WRITE_SIZE = 400;
             }
+            nameFlag = false;
+        }
+        msgs.get(topic).add(defaultMessage);
+        msgCount++;
+        if (msgCount >= ONE_WRITE_SIZE){
+            msgCount = 0;
+            writeNow();
+        }
+    }
+    //处理将缓存区的剩余部分
+    public void flush() {
+        writeNow();
+//        for (String topic : msgs.keySet()) {
+//            //topicStreams.get(topic).flush();
+//            //topicStreams.get(topic).close();
+//        }
+    }
+
+
+    public void writeNow(){
+        for (String topic : msgs.keySet()) {
+            messages = msgs.get(topic);
+            if (messages.isEmpty()) {
+                continue;
+            }
+            try {
+                write(topic,messages);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            messages.clear();
         }
     }
 
-    private static boolean deleteDir(File dir) {
-        if (dir.isDirectory()) {
-            String[] children = dir.list();
-            //递归删除目录中的子目录下
-            for (int i = 0; i < children.length; i++) {
-                boolean success = deleteDir(new File(dir, children[i]));
-                if (!success) {
-                    return false;
+
+    public void write(String topic, List<ByteMessage> messages)throws Exception{
+
+        //String name = Thread.currentThread().getName();
+        if (!topicStreams.containsKey(topic)) {
+            (new File("data/" + topic)).mkdir();
+            currentPos = 0;
+            //fileChannel = AsynchronousFileChannel.open(Paths.get("data/" + topic + "/" + name), StandardOpenOption.WRITE, StandardOpenOption.CREATE);
+            fileChannel = new BufferedOutputStream(new FileOutputStream("data/" + topic + "/" + name, true));
+            writePos.put(topic, currentPos);
+            topicStreams.put(topic, fileChannel);
+        } else {
+            fileChannel = topicStreams.get(topic);
+        }
+        for (ByteMessage b : messages) {
+
+            bytes = message2ByteArray(b);
+            bytesLength = bytes.length;
+            buffer.put(intToBytes(bytesLength), 0, 4);
+            buffer.put(bytes, 0, bytesLength);
+        }
+
+//        buffer.flip();
+//        compLength = compress(array, buffer.remaining(), temp);
+//        fileChannel.write(intToBytes(compLength));
+//        fileChannel.write(temp, 0, compLength);
+//        fileChannel.flush();
+//        buffer.clear();
+
+        buffer.flip();
+        if (buffer.remaining() > 50000) {
+            isCompress = 1;
+            compLength = compress(array, buffer.remaining(), temp);
+            fileChannel.write(intToBytes(isCompress));
+            fileChannel.write(intToBytes(compLength));
+            fileChannel.write(temp, 0, compLength);
+        } else {
+            isCompress = 0;
+            fileChannel.write(intToBytes(isCompress));
+            fileChannel.write(intToBytes(buffer.remaining()));
+            fileChannel.write(array, 0, buffer.remaining());
+        }
+
+        fileChannel.flush();
+        buffer.clear();
+
+//        buffer.flip();
+//        compLength = compress(array, buffer.remaining(), temp);
+//        if (flag) {
+//            while (!operation.isDone());
+//            bufferComp.clear();
+//        }
+//        bufferComp.putInt(compLength);
+//        bufferComp.put(temp, 0, compLength);
+//        bufferComp.flip();
+//        currentPos = writePos.get(topic);
+//        operation = fileChannel.write(bufferComp, currentPos);
+//        writePos.put(topic, currentPos + compLength + 4);
+//        buffer.clear();
+//        flag = true;
+//        if (flag) {
+//            while (!operation.isDone());
+//            bufferComp.clear();
+//        }
+
+//        buffer.flip();
+//        int compLength = buffer.remaining();
+//        buffer.get(temp, 0 , compLength);
+//        if (flag) {
+//            while (!operation.isDone());
+//            bufferComp.clear();
+//        }
+//        bufferComp.put(intToBytes(compLength), 0, 4);
+//        bufferComp.put(temp, 0, compLength);
+//        bufferComp.flip();
+//        currentPos = writePos.get(topic);
+//        operation = fileChannel.write(bufferComp, currentPos);
+//        afterPos = currentPos + compLength + 4;
+//        writePos.put(topic, afterPos);
+//        buffer.clear();
+//        flag = true;
+    }
+
+    public byte[] message2ByteArray(ByteMessage message) {
+        long flag = 0L;
+        //byteHeaders = new ArrayList<>();
+
+        //valueLength = 0;
+        mesgBuffer.position(6);
+
+        for (int i = 0; i < 15; i++) {
+            if (message.headers().containsKey(headerBank[i])) {
+                flag++;
+                flag <<= 1;
+
+                hObject = message.headers().getObj(headerBank[i]);
+                className = hObject.getClass().toString();
+                switch (className){
+                    case "class java.lang.Integer":
+                        flag <<= 2;
+                        int hInt = ((Integer) hObject).intValue();
+                        byte[] headerInt = new byte[4];
+                        headerInt[0] = (byte) ((hInt >>> 24) & 0xFF);
+                        headerInt[1] = (byte) ((hInt >>> 16) & 0xFF);
+                        headerInt[2] = (byte) ((hInt >>> 8) & 0xFF);
+                        headerInt[3] = (byte) (hInt & 0xFF);
+                        //byteHeaders.add(headerInt);
+                        mesgBuffer.put(headerInt);
+                        //valueLength = valueLength + 4;
+                        break;
+                    case "class java.lang.Long":
+                        flag <<= 1;
+                        flag++;
+                        flag <<= 1;
+                        long hLong = ((Long) hObject).longValue();
+                        byte[] headerLong = new byte[8];
+                        for (int j = 0; j < 8; j++) {
+                            //前在前
+                            headerLong[j] = (byte) ((hLong >>> (56 - 8 * j)) & 0xFF);
+                        }
+                        //byteHeaders.add(headerLong);
+                        mesgBuffer.put(headerLong);
+                        //valueLength = valueLength + 8;
+                        break;
+                    case "class java.lang.Double":
+                        flag++;
+                        flag <<= 2;
+                        double hDouble = ((Double) hObject).doubleValue();
+                        byte[] headerDouble = new byte[8];
+                        long value = Double.doubleToRawLongBits(hDouble);
+                        for (int j = 0; j < 8; j++) {
+                            //前在后
+                            headerDouble[j] = (byte) ((value >>> 8 * j) & 0xff);
+                        }
+                        //byteHeaders.add(headerDouble);
+                        mesgBuffer.put(headerDouble);
+                        //valueLength = valueLength + 8;
+                        break;
+                    case "class java.lang.String":
+                        flag++;
+                        flag <<= 1;
+                        flag++;
+                        flag <<= 1;
+                        String hString = hObject.toString();
+                        char strLength = (char) hString.length();
+                        hString = strLength + hString;
+                        byte[] headerString = hString.getBytes();
+                        //byteHeaders.add(headerString);
+                        mesgBuffer.put(headerString);
+                        //valueLength = valueLength + headerString.length;
                 }
+
+            } else {
+                flag <<= 3;
             }
         }
-        // 目录此时为空，可以删除
-        return dir.delete();
+
+        if (message.headers().containsKey(headerBank[15])) {
+            flag++;
+            flag <<= 1;
+            Object hObject = message.headers().getObj(headerBank[15]);
+            className = hObject.getClass().toString();
+            switch (className){
+                case "class java.lang.Integer":
+                    flag <<= 1;
+                    int hInt = ((Integer) hObject).intValue();
+                    byte[] headerInt = new byte[4];
+                    headerInt[0] = (byte) ((hInt >>> 24) & 0xFF);
+                    headerInt[1] = (byte) ((hInt >>> 16) & 0xFF);
+                    headerInt[2] = (byte) ((hInt >>> 8) & 0xFF);
+                    headerInt[3] = (byte) (hInt & 0xFF);
+                    //byteHeaders.add(headerInt);
+                    mesgBuffer.put(headerInt);
+                    //valueLength = valueLength + 4;
+                    break;
+                case "class java.lang.Long":
+                    flag <<= 1;
+                    flag++;
+                    long hLong = ((Long) hObject).longValue();
+                    byte[] headerLong = new byte[8];
+                    for (int j = 0; j < 8; j++) {
+                        //前在前
+                        headerLong[j] = (byte) ((hLong >>> (56 - 8 * j)) & 0xFF);
+                    }
+                    //byteHeaders.add(headerLong);
+                    mesgBuffer.put(headerLong);
+                    //valueLength = valueLength + 8;
+                    break;
+                case "class java.lang.Double":
+                    flag++;
+                    flag <<= 1;
+                    double hDouble = ((Double) hObject).doubleValue();
+                    byte[] headerDouble = new byte[8];
+                    long value = Double.doubleToRawLongBits(hDouble);
+                    for (int j = 0; j < 8; j++) {
+                        //前在后
+                        headerDouble[j] = (byte) ((value >>> 8 * j) & 0xff);
+                    }
+                    //byteHeaders.add(headerDouble);
+                    mesgBuffer.put(headerDouble);
+                    //valueLength = valueLength + 8;
+                    break;
+                case "class java.lang.String":
+                    flag++;
+                    flag <<= 1;
+                    flag++;
+                    String hString = hObject.toString();
+                    char strLength = (char) hString.length();
+                    hString = strLength + hString;
+                    byte[] headerString = hString.getBytes();
+                    //byteHeaders.add(headerString);
+                    mesgBuffer.put(headerString);
+                    //valueLength = valueLength + headerString.length;
+            }
+        } else {
+            flag <<= 2;
+        }
+
+
+        byte[] messBody = message.getBody();
+
+        byte[] flagResult = new byte[8];
+        for (int j = 0; j < 8; j++) {
+            flagResult[j] = (byte) ((flag >>> (56 - 8 * j)) & 0xFF);
+        }
+
+        int i = mesgBuffer.position();
+        mesgBuffer.position(0);
+        mesgBuffer.put(flagResult, 2, 6);
+        mesgBuffer.position(i);
+        mesgBuffer.put(messBody);
+        mesgBuffer.flip();
+        byte[] result = new byte[mesgBuffer.remaining()];
+        mesgBuffer.get(result);
+        mesgBuffer.clear();
+
+
+        return result;
     }
 
-	public ByteMessage createBytesMessageToTopic(String topic, byte[] body) throws Exception {
-		ByteMessage msg = new DefaultMessage(body);
-		msg.putHeaders(MessageHeader.TOPIC, topic);
-		return msg;
-	}
+    public byte[] intToBytes(int v) {
+        byte[] bytes = new byte[4];
 
-	public void send(ByteMessage defaultMessage) throws Exception {
-		String topic = defaultMessage.headers().getString(MessageHeader.TOPIC);
-		if (first) {
-			id = (int) Thread.currentThread().getId() % 4;
-			first = false;
-		}
-		if (!msgs.containsKey(topic)) {
-			msgs.put(topic, new LinkedList<ByteMessage>());
-		}
-		// 加入消息
-		((LinkedList<ByteMessage>) msgs.get(topic)).add(defaultMessage);
-		if (++count >= COUNT_SIZE) {
-			// WriteToFile(id);
-			if (!firstWrite) {
-				w.join();
-			} else {
-				firstWrite = false;
-			}
-			w = new WriteToFile(msgs);
-			w.start();
-			msgs = new HashMap<String, LinkedList<ByteMessage>>();
-			count = 0;
-		}
-	}
+        bytes[3] = (byte) (v & 0xff);
+        bytes[2] = (byte) ((v >> 8) & 0xff);
+        bytes[1] = (byte) ((v >> 16) & 0xff);
+        bytes[0] = (byte) ((v >> 24) & 0xff);
 
-	public void flush() throws Exception {
-		// MessageStore.store.WriteToFile((int)Thread.currentThread().getId()%4);//一个线程结束时调用
-	}
+        return bytes;
+    }
 
-	class WriteToFile extends Thread {
 
-		private HashMap<String, LinkedList<ByteMessage>> msgs = new HashMap<>();
 
-		public WriteToFile(HashMap msgs) {
-			this.msgs = msgs;
-		}
+    public int compress(byte[] input, int length, byte[] output) {
+        int count = 0;
+        int allCount = 0;
+        Deflater compressor = new Deflater(1);
+        try {
+            compressor.setInput(input, 0 , length);
+            compressor.finish();
+            while (!compressor.finished()) {
+                count = compressor.deflate(output, allCount, 1280000);
+                allCount = allCount + count;
+            }
+        } finally {
+            compressor.end();
+        }
+        return allCount;
+    }
 
-		@Override
-		public void run() {
-			try {
-				byte[] buf = new byte[205000];
-				for (Object key : msgs.keySet()) {// 先取出Key值，将相同的Topic放到一个文件
-					FileOutputStream fos = new FileOutputStream("./data/" + (String) key + id + ".txt", true);
-					BufferedOutputStream bos = new BufferedOutputStream(fos);
-					List<ByteMessage> msglist = (List<ByteMessage>) msgs.get(key);
-					// RandomAccessFile
-					for (ByteMessage msg : msglist) {
-//						int buf_size = msg.getBody().length + 512;
-						int len = 0;
-						byte[] hkey = new byte[2];
-						byte[] vtype = new byte[4];
-						for (int i = 0; i < 16; ++i) {
-							Object obj = msg.headers().getObj(keylist[i]);
-							if (obj != null) {
-								int j = i / 4;
-								int off = i % 4;
-								if (obj instanceof Integer) {
-									
-								} else if (obj instanceof Double) {
-									if (off == 0) {
-										vtype[j] = (byte) (vtype[j] | (byte) 0x40);
-									} else if (off == 1) {
-										vtype[j] = (byte) (vtype[j] | (byte) 0x10);
-									} else if (off == 2) {
-										vtype[j] = (byte) (vtype[j] | (byte) 0x04);
-									} else {
-										vtype[j] = (byte) (vtype[j] | (byte) 0x01);
-									}
-								} else if (obj instanceof Long) {
-									if (off == 0) {
-										vtype[j] = (byte) (vtype[j] | (byte) 0x80);
-									} else if (off == 1) {
-										vtype[j] = (byte) (vtype[j] | (byte) 0x20);
-									} else if (off == 2) {
-										vtype[j] = (byte) (vtype[j] | (byte) 0x08);
-									} else {
-										vtype[j] = (byte) (vtype[j] | (byte) 0x02);
-									}
-								} else {
-									if (off == 0) {
-										vtype[j] = (byte) (vtype[j] | (byte) 0xc0);
-									} else if (off == 1) {
-										vtype[j] = (byte) (vtype[j] | (byte) 0x30);
-									} else if (off == 2) {
-										vtype[j] = (byte) (vtype[j] | (byte) 0x0c);
-									} else {
-										vtype[j] = (byte) (vtype[j] | (byte) 0x03);
-									}
-								}
-								String h = keylist[i];
-								switch (h) {
-								case "MessageId":
-									hkey[0] = (byte) (hkey[0] | (byte) 0x80);
-									break;
-								case "Topic":
-									hkey[0] = (byte) (hkey[0] | 0x40);
-									break;
-								case "BornTimestamp":
-									hkey[0] = (byte) (hkey[0] | 0x20);
-									break;
-								case "BornHost":
-									hkey[0] = (byte) (hkey[0] | 0x10);
-									break;
-								case "StoreTimestamp":
-									hkey[0] = (byte) (hkey[0] | 0x08);
-									break;
-								case "StoreHost":
-									hkey[0] = (byte) (hkey[0] | 0x04);
-									break;
-								case "StartTime":
-									hkey[0] = (byte) (hkey[0] | 0x02);
-									break;
-								case "StopTime":
-									hkey[0] = (byte) (hkey[0] | 0x01);
-									break;
-								case "Timeout":
-									hkey[1] = (byte) (hkey[1] | (byte) 0x80);
-									break;
-								case "Priority":
-									hkey[1] = (byte) (hkey[1] | 0x40);
-									break;
-								case "Reliability":
-									hkey[1] = (byte) (hkey[1] | 0x20);
-									break;
-								case "SearchKey":
-									hkey[1] = (byte) (hkey[1] | 0x10);
-									break;
-								case "ScheduleExpression":
-									hkey[1] = (byte) (hkey[1] | 0x08);
-									break;
-								case "ShardingKey":
-									hkey[1] = (byte) (hkey[1] | 0x04);
-									break;
-								case "ShardingPartition":
-									hkey[1] = (byte) (hkey[1] | 0x02);
-									break;
-								case "TraceId":
-									hkey[1] = (byte) (hkey[1] | 0x01);
-									break;
-								}
-							}
-						}
-						System.arraycopy(hkey, 0, buf, len, 2);
-						len += 2;
-						System.arraycopy(vtype, 0, buf, len, 4);
-						len += 4;
-						for (int i = 0; i < 16; ++i) {
-							Object obj = msg.headers().getObj(keylist[i]);
-							if (obj != null) {
-								if (obj instanceof Integer) {
-//									buf[len++] = 'i';
-									System.arraycopy(Utils.intToBytes((int) obj), 0, buf, len, 4);
-									len += 4;
-								} else if (obj instanceof Double) {
-//									buf[len++] = 'd';
-									System.arraycopy(Utils.doubleToBytes((double) obj), 0, buf, len, 8);
-									len += 8;
-								} else if (obj instanceof Long) {
-//									buf[len++] = 'l';
-									System.arraycopy(Utils.longToBytes((long) obj), 0, buf, len, 8);
-									len += 8;
-								} else {
-//									buf[len++] = 's';
-									System.arraycopy(Utils.shortToBytes((short) ((String) obj).length()), 0, buf, len, 2);
-									len += 2;
-									System.arraycopy(((String) obj).getBytes(), 0, buf, len, ((String) obj).length());
-									len += ((String) obj).length();
-								}
-							}
-						}
-						System.arraycopy(Utils.intToBytes(msg.getBody().length), 0, buf, len, 4);
-						len += 4;
-						System.arraycopy(msg.getBody(), 0, buf, len, msg.getBody().length);
-						len += msg.getBody().length;
-
-						if (len > 1024) {
-							byte[] com_buf = Utils.compress(buf, 0, len);
-							bos.write('c');
-							bos.write(Utils.intToBytes(com_buf.length));
-							bos.write(com_buf);
-						} else {
-							bos.write('u');
-							bos.write(Utils.shortToBytes((short) len));
-							bos.write(buf, 0, len);
-						}
-					}
-					bos.flush();
-				}
-			} catch (Exception e) {
-				// e.printStackTrace();
-			}
-		}
-	}
+//    static class writeParallel implements Runnable {
+//
+//        public writeParallel() {
+//
+//        }
+//
+//        @Override
+//        public void run() {
+//
+//        }
+//    }
 }

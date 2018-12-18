@@ -1,14 +1,13 @@
 package pku;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Set;
 
 /**
  * 一个Key-Value的实现
  */
-public class DefaultKeyValue implements KeyValue,Serializable{
-    private final HashMap<String, Object> kvs = new HashMap<>(32);
+public class DefaultKeyValue implements KeyValue{
+    private final HashMap<String, Object> kvs = new HashMap<>();
 
     public Object getObj(String key) {
         return kvs.get(key);
@@ -39,15 +38,15 @@ public class DefaultKeyValue implements KeyValue,Serializable{
     }
 
     public int getInt(String key) {
-        return (int) kvs.getOrDefault(key, "0");
+        return (Integer) kvs.getOrDefault(key, 0);
     }
 
     public long getLong(String key) {
-        return (long) kvs.getOrDefault(key, "0");
+        return (Long) kvs.getOrDefault(key, 0L);
     }
 
     public double getDouble(String key) {
-        return (double) kvs.getOrDefault(key, "0.0");
+        return (Double) kvs.getOrDefault(key, 0.0d);
     }
 
     public String getString(String key) {
