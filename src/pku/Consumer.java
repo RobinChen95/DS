@@ -49,15 +49,10 @@ public class Consumer {
     int messageLength;
     //将消费者订阅的topic进行绑定
     public void attachQueue(String queueName, Collection<String> t) {
-//        if (queue != null) {
-//            throw new Exception("只允许绑定一次");
-//        }
         queue = queueName;
         topics.addAll(t);
     }
 
-
-    //每次消费读取一个message
     public ByteMessage poll() throws Exception {
 
 
@@ -127,10 +122,6 @@ public class Consumer {
 
     public ArrayList<ByteMessage> readMessage(BufferedInputStream buffer) throws IOException {
         ArrayList<ByteMessage> result = new ArrayList<>();
-        //uncompLength = 0;
-        //int messageLength = 0;
-
-//        选择压缩版本
         byte[] length = new byte[4];
         if (buffer.read(length) == -1) {
             return null;
@@ -180,55 +171,6 @@ public class Consumer {
             currentReadMesg = i;
         }
 
-
-//        有压缩版本
-//        byte[] length = new byte[4];
-//        if (buffer.read(length) == -1) {
-//            return null;
-//        }
-//
-//        int allMessageLength = toInt(length);
-//
-//        byte[] msg = new byte[allMessageLength];
-//        buffer.read(msg);
-//
-//        try {
-//            uncompLength = uncompress(msg, array);
-//            bufferUncomp.limit(uncompLength);
-//        } catch (DataFormatException e){
-//            e.printStackTrace();
-//        }
-//        int i;
-//        for (i = 0; i < ONE_READ_SIZE; i++){
-//            if (bufferUncomp.remaining() == 0){
-//                currentReadMesg = i;
-//                bufferUncomp.clear();
-//                return result;
-//            }
-//            messageLength = bufferUncomp.getInt();
-//            singleMessage = new byte[messageLength];
-//            bufferUncomp.get(singleMessage);
-//            result.add(byteArray2Message(singleMessage));
-//        }
-
-//        无压缩版本的
-//        bufferUncomp.put(msg, 0, msg.length);
-//        bufferUncomp.flip();
-//        int i = 0;
-//        for (i = 0; i < ONE_READ_SIZE; i++){
-//
-//            if (bufferUncomp.remaining() == 0){
-//                currentReadMesg = i;
-//                bufferUncomp.clear();
-//                return result;
-//            }
-//            messageLength = bufferUncomp.getInt();
-//            singleMessage = new byte[messageLength];
-//            bufferUncomp.get(singleMessage);
-//            result.add(byteArray2Message(singleMessage));
-//        }
-
-        //currentReadMesg = i;
         bufferUncomp.clear();
         return result;
     }

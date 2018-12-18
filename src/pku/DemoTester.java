@@ -12,15 +12,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.io.File;
-//import org.apache.commons.lang3.RandomStringUtils;
 /**
  * 这个程序演示了测评程序的基本逻辑
  * 正式的测评程序会比这个更复杂
  */
 public class DemoTester {
     //每个pusher向每个topic发送的消息数目
-    static int PUSH_COUNT = 400;
+    static int PUSH_COUNT = 400000;
     //发送消息的线程数
     static int PUSH_THREAD_COUNT = 4;
     //发送线程往n个topic发消息
@@ -236,18 +234,13 @@ public class DemoTester {
     public static void main(String args[]) {
 
         try {
+            File dir = new File("data/");
+            deleteAllFiles(dir);
                 testPush();
                 testPull();
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        File dir = new File("data/");
-//        String[] children = dir.list();
-//        for (int i = 0; i < children.length; i++) {
-//            //System.out.println(children[i]);
-//            new File("data/" + children[i]).delete();
-//        }
-        deleteAllFiles(dir);
     }
 }

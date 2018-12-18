@@ -14,19 +14,15 @@ import java.nio.channels.AsynchronousFileChannel;
 
 public class Producer {
 
-    //private final int ONE_WRITE_SIZE = 200;
     private int ONE_WRITE_SIZE;
     byte[] array = new byte[2560000];
     private ByteBuffer buffer = ByteBuffer.wrap(array);
     byte[] temp = new byte[1280000];
-    //private ByteBuffer bufferComp = ByteBuffer.allocateDirect(1280000);
     private ByteBuffer mesgBuffer = ByteBuffer.allocateDirect(256256);
     private long currentPos = 0;
     private HashMap<String, ArrayList<ByteMessage>> msgs = new HashMap<>();
-    //private HashMap<String, AsynchronousFileChannel> topicStreams = new HashMap<>();
     private static final Map<String, BufferedOutputStream> topicStreams = new HashMap<>();
     private HashMap<String, Long> writePos = new HashMap<>();
-    //AsynchronousFileChannel fileChannel = null;
     BufferedOutputStream fileChannel = null;
     Future<Integer> operation = null;
     boolean flag = false;
@@ -42,8 +38,6 @@ public class Producer {
     int isCompress = 0;
     String name;
 
-    //ArrayList<byte[]> byteHeaders = null;
-    //int valueLength = 0;
 
     private  final String[] headerBank = {
             //Int
@@ -99,10 +93,6 @@ public class Producer {
     //处理将缓存区的剩余部分
     public void flush() {
         writeNow();
-//        for (String topic : msgs.keySet()) {
-//            //topicStreams.get(topic).flush();
-//            //topicStreams.get(topic).close();
-//        }
     }
 
 
@@ -143,13 +133,6 @@ public class Producer {
             buffer.put(bytes, 0, bytesLength);
         }
 
-//        buffer.flip();
-//        compLength = compress(array, buffer.remaining(), temp);
-//        fileChannel.write(intToBytes(compLength));
-//        fileChannel.write(temp, 0, compLength);
-//        fileChannel.flush();
-//        buffer.clear();
-
         buffer.flip();
         if (buffer.remaining() > 50000) {
             isCompress = 1;
@@ -166,42 +149,6 @@ public class Producer {
 
         fileChannel.flush();
         buffer.clear();
-
-//        buffer.flip();
-//        compLength = compress(array, buffer.remaining(), temp);
-//        if (flag) {
-//            while (!operation.isDone());
-//            bufferComp.clear();
-//        }
-//        bufferComp.putInt(compLength);
-//        bufferComp.put(temp, 0, compLength);
-//        bufferComp.flip();
-//        currentPos = writePos.get(topic);
-//        operation = fileChannel.write(bufferComp, currentPos);
-//        writePos.put(topic, currentPos + compLength + 4);
-//        buffer.clear();
-//        flag = true;
-//        if (flag) {
-//            while (!operation.isDone());
-//            bufferComp.clear();
-//        }
-
-//        buffer.flip();
-//        int compLength = buffer.remaining();
-//        buffer.get(temp, 0 , compLength);
-//        if (flag) {
-//            while (!operation.isDone());
-//            bufferComp.clear();
-//        }
-//        bufferComp.put(intToBytes(compLength), 0, 4);
-//        bufferComp.put(temp, 0, compLength);
-//        bufferComp.flip();
-//        currentPos = writePos.get(topic);
-//        operation = fileChannel.write(bufferComp, currentPos);
-//        afterPos = currentPos + compLength + 4;
-//        writePos.put(topic, afterPos);
-//        buffer.clear();
-//        flag = true;
     }
 
     public byte[] message2ByteArray(ByteMessage message) {
@@ -390,16 +337,4 @@ public class Producer {
         }
         return allCount;
     }
-
-//    static class writeParallel implements Runnable {
-//
-//        public writeParallel() {
-//
-//        }
-//
-//        @Override
-//        public void run() {
-//
-//        }
-//    }
 }
