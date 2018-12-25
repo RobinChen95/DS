@@ -28,10 +28,9 @@ public class PhoneClient extends Thread {
 	
 	public void run() { 
 		while (true) {
-			DatagramPacket packet = null;
+			DatagramPacket packet;
 			byte data[] = new byte[1024];
 			line.read(data, 0, data.length);
-			// �����ݴ��
 			packet = new DatagramPacket(data, data.length, iaddress, port);
 			try {
 				socket.send(packet);

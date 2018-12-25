@@ -30,7 +30,6 @@ public class Client extends Thread {
 			DatagramPacket packet = null;
 			byte data[] = new byte[1024];
 			line.read(data, 0, data.length);
-			// �����ݴ��
 			packet = new DatagramPacket(data, data.length, iaddress, port);
 			try {
 				socket.send(packet);
