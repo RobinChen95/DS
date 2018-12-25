@@ -13,7 +13,7 @@ public class Server extends JFrame implements Runnable, ActionListener {
 	int port; 
 	SourceDataLine line;
 	DatagramSocket socket = null; 
-	JButton start_button = new JButton("��ʼ�����ź�"); 
+	JButton start_button = new JButton("开始");
 	Thread thread; 
 	String msg = null;
 	boolean StopFlag = false; 
@@ -29,7 +29,7 @@ public class Server extends JFrame implements Runnable, ActionListener {
 		JPanel north = new JPanel(); 
 		north.add(start_button);
 		add(north, BorderLayout.NORTH);
-		port = 7091; // �˿ں�
+		port = 7091;
 		try {
 			socket = new DatagramSocket(port);
 			line = (SourceDataLine) AudioSystem.getLine(info);
@@ -53,10 +53,10 @@ public class Server extends JFrame implements Runnable, ActionListener {
 	public void run() { 
 		while (true) {
 			byte data[] = new byte[1024];
-			DatagramPacket packet = null; 
+			DatagramPacket packet;
 			packet = new DatagramPacket(data, data.length);	
 			try {
-				socket.receive(packet); // ��������
+				socket.receive(packet);
 				JTextArea showing = new JTextArea();
 				showing.setText(msg);
 				validate();
@@ -65,7 +65,7 @@ public class Server extends JFrame implements Runnable, ActionListener {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			if (StopFlag) { // ����ֹͣ������
+			if (StopFlag) {
 				break;
 			}
 		}

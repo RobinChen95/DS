@@ -14,7 +14,7 @@ public class Client extends Thread {
 		AudioFormat format=new AudioFormat(8000, 16, 2, true, true);
 		DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
 		try {
-        	String ip_sender = JOptionPane.showInputDialog("����IP");
+        	String ip_sender = JOptionPane.showInputDialog("输入IP");
 			iaddress = InetAddress.getByName(ip_sender);
 			socket = new DatagramSocket(5151); 
 			line = (TargetDataLine) AudioSystem.getLine(info);
@@ -27,7 +27,7 @@ public class Client extends Thread {
 	
 	public void run() { 
 		while (true) {
-			DatagramPacket packet = null;
+			DatagramPacket packet;
 			byte data[] = new byte[1024];
 			line.read(data, 0, data.length);
 			packet = new DatagramPacket(data, data.length, iaddress, port);

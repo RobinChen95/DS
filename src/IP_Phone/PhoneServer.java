@@ -13,8 +13,8 @@ public class PhoneServer extends JFrame implements Runnable, ActionListener {
 	int port; 
 	SourceDataLine line;
 	DatagramSocket socket = null; 
-	JButton start_button = new JButton("����������"); 
-	JButton stop_button = new JButton("ֹͣ������");
+	JButton start_button = new JButton("开始");
+	JButton stop_button = new JButton("ֹͣ结束");
 	Thread thread; 
 	String msg = null;
 	boolean StopFlag = false; 
@@ -26,13 +26,13 @@ public class PhoneServer extends JFrame implements Runnable, ActionListener {
 		DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
 		setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 		thread = new Thread(this);
-		start_button.addActionListener(this); //ע��Listener
+		start_button.addActionListener(this);
 		stop_button.addActionListener(this); 
 		JPanel north = new JPanel(); 
 		north.add(start_button); 
 		north.add(stop_button);
 		add(north, BorderLayout.NORTH);
-		port = 7091; // �˿ں�
+		port = 7091; //
 		try {
 			socket = new DatagramSocket(port);
 			line = (SourceDataLine) AudioSystem.getLine(info);
@@ -46,7 +46,7 @@ public class PhoneServer extends JFrame implements Runnable, ActionListener {
 	}
 	
 	public void actionPerformed(ActionEvent e) { 
-		if (e.getSource() == start_button) { // ������ťstart_button�����¼�		
+		if (e.getSource() == start_button) {
 			start_button.setBackground(Color.red); 
 			stop_button.setBackground(Color.green);
 			if (!(thread.isAlive())) { 
@@ -64,10 +64,10 @@ public class PhoneServer extends JFrame implements Runnable, ActionListener {
 	public void run() { 
 		while (true) {
 			byte data[] = new byte[1024];
-			DatagramPacket packet = null; 
+			DatagramPacket packet;
 			packet = new DatagramPacket(data, data.length);	
 			try {
-				socket.receive(packet); // ��������
+				socket.receive(packet);
 				msg="Hearing voice from IP:\n"+packet.getAddress();
 				JTextArea showing = new JTextArea();
 				showing.setText(msg);
@@ -77,7 +77,7 @@ public class PhoneServer extends JFrame implements Runnable, ActionListener {
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			if (StopFlag) { // ����ֹͣ������
+			if (StopFlag) {
 				break;
 			}
 		}
