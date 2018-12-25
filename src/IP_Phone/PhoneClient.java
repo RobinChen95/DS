@@ -14,9 +14,9 @@ public class PhoneClient extends Thread {
 		AudioFormat format=new AudioFormat(8000, 16, 2, true, true);
 		DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
 		try {
-        	String ip_sender = JOptionPane.showInputDialog("����IP");
+        	String ip_sender = JOptionPane.showInputDialog("输入IP");
 			iaddress = InetAddress.getByName(ip_sender);
-			JOptionPane.showMessageDialog(null,"�ѽ������ӣ����ڴ�����Ϣ...","IP Phone",JOptionPane.PLAIN_MESSAGE);
+			JOptionPane.showMessageDialog(null,"正在拨打电话...","IP Phone",JOptionPane.PLAIN_MESSAGE);
 			socket = new DatagramSocket(5151); 
 			line = (TargetDataLine) AudioSystem.getLine(info);
             line.open(format, line.getBufferSize());
