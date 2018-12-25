@@ -1,4 +1,4 @@
-package Chapter1_Basic;
+package Test;
 
 import java.util.ArrayList;
 import java.util.Collection;
