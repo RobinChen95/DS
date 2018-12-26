@@ -10,7 +10,7 @@ public class PhoneClient extends Thread {
 	InetAddress iaddress = null; 
 	DatagramSocket socket = null; 
 	
-	PhoneClient() { 
+	PhoneClient() {
 		AudioFormat format=new AudioFormat(8000, 16, 2, true, true);
 		DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
 		try {
@@ -18,7 +18,7 @@ public class PhoneClient extends Thread {
 			iaddress = InetAddress.getByName(ip_sender);
 			JOptionPane.showMessageDialog(null,"正在拨打电话...","IP Phone",JOptionPane.PLAIN_MESSAGE);
 			socket = new DatagramSocket(5151); 
-			line = (TargetDataLine) AudioSystem.getLine(info);
+			line = (TargetDataLine)AudioSystem.getLine(info);
             line.open(format, line.getBufferSize());
             line.start();
 		} catch (Exception e) {

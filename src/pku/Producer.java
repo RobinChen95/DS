@@ -1,13 +1,9 @@
 package pku;
 
 import java.io.*;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.*;
-import java.util.concurrent.Future;
 import java.util.zip.*;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousFileChannel;
 /**
  * 生产者
  */
@@ -18,14 +14,12 @@ public class Producer {
     byte[] array = new byte[2560000];
     private ByteBuffer buffer = ByteBuffer.wrap(array);
     byte[] temp = new byte[1280000];
-    private ByteBuffer mesgBuffer = ByteBuffer.allocateDirect(256256);
+    private ByteBuffer mesgBuffer = ByteBuffer.allocateDirect(1280000);
     private long currentPos = 0;
     private HashMap<String, ArrayList<ByteMessage>> msgs = new HashMap<>();
     private static final Map<String, BufferedOutputStream> topicStreams = new HashMap<>();
     private HashMap<String, Long> writePos = new HashMap<>();
-    BufferedOutputStream fileChannel = null;
-    Future<Integer> operation = null;
-    boolean flag = false;
+    BufferedOutputStream OutBuffer = null;
     private int msgCount = 0;
     private String className = null;
     private Object hObject = null;
@@ -37,7 +31,6 @@ public class Producer {
     boolean nameFlag = true;
     int isCompress = 0;
     String name;
-
 
     private  final String[] headerBank = {
             //Int
@@ -114,16 +107,14 @@ public class Producer {
 
     public void write(String topic, List<ByteMessage> messages)throws Exception{
 
-        //String name = Thread.currentThread().getName();
         if (!topicStreams.containsKey(topic)) {
             (new File("data/" + topic)).mkdir();
             currentPos = 0;
-            //fileChannel = AsynchronousFileChannel.open(Paths.get("data/" + topic + "/" + name), StandardOpenOption.WRITE, StandardOpenOption.CREATE);
-            fileChannel = new BufferedOutputStream(new FileOutputStream("data/" + topic + "/" + name, true));
+            OutBuffer = new BufferedOutputStream(new FileOutputStream("data/" + topic + "/" + name, true));
             writePos.put(topic, currentPos);
-            topicStreams.put(topic, fileChannel);
+            topicStreams.put(topic, OutBuffer);
         } else {
-            fileChannel = topicStreams.get(topic);
+            OutBuffer = topicStreams.get(topic);
         }
         for (ByteMessage b : messages) {
 
@@ -137,17 +128,17 @@ public class Producer {
         if (buffer.remaining() > 50000) {
             isCompress = 1;
             compLength = compress(array, buffer.remaining(), temp);
-            fileChannel.write(intToBytes(isCompress));
-            fileChannel.write(intToBytes(compLength));
-            fileChannel.write(temp, 0, compLength);
+            OutBuffer.write(intToBytes(isCompress));
+            OutBuffer.write(intToBytes(compLength));
+            OutBuffer.write(temp, 0, compLength);
         } else {
             isCompress = 0;
-            fileChannel.write(intToBytes(isCompress));
-            fileChannel.write(intToBytes(buffer.remaining()));
-            fileChannel.write(array, 0, buffer.remaining());
+            OutBuffer.write(intToBytes(isCompress));
+            OutBuffer.write(intToBytes(buffer.remaining()));
+            OutBuffer.write(array, 0, buffer.remaining());
         }
 
-        fileChannel.flush();
+        OutBuffer.flush();
         buffer.clear();
     }
 

@@ -54,9 +54,7 @@ public class Consumer {
     }
 
     public ByteMessage poll() throws Exception {
-
-
-        String topicName = null;
+        String topicName;
         while (true){
             topicName = topics.get(readPos);
             re = loadByteMessage(topicName);
@@ -74,8 +72,6 @@ public class Consumer {
     }
 
     public ByteMessage loadByteMessage(String topicName) throws IOException {
-
-
         //ByteMessage result;
         while (true) {
             if (messageList.isEmpty()) {
