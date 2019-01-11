@@ -1,13 +1,20 @@
 package Chapter1_Basic;
 
+import java.io.*;
 import java.math.BigInteger;
 
 public class GoldBach {
 
     public static void main(String[] args) {
-        BigInteger bigInteger = new BigInteger("8");
-        boolean found;
-        int count=0;
+        try {
+            BigInteger bigInteger = new BigInteger("113731378");
+            FileReader fr = new FileReader("./GoldBach.txt");
+            BufferedReader br = new BufferedReader(fr);
+            String savedNum = br.readLine();
+            if (savedNum!=null)
+            bigInteger= new BigInteger(savedNum);
+            boolean found;
+            int count=0;
         while(true){
             found = false;
             for (BigInteger bi = BigInteger.valueOf(3);bi.compareTo(bigInteger.divide(BigInteger.valueOf(2)))<=0;
@@ -17,8 +24,11 @@ public class GoldBach {
                     //只找一个满足条件的即可退出
                     found = true;
                     count++;
-                    //一万轮打印一次
+                    //一万轮打印并保存一次
                     if (count>10000){
+                        FileOutputStream fos = new FileOutputStream("./GoldBach.txt",false);
+                        fos.write(bigInteger.toString().getBytes());
+                        fos.close();
                         System.out.println(bigInteger+"="+bi+"+"+b);
                         count=0;
                     }
@@ -32,13 +42,15 @@ public class GoldBach {
                 System.exit(0);
             }
         }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
     }
 
     public static boolean isPrime(BigInteger bi){
         for (BigInteger bigInteger=BigInteger.valueOf(2);bigInteger.compareTo(bi.sqrt())<=0;
              bigInteger=bigInteger.add(BigInteger.valueOf(1))) {
-            //System.out.println(bi);
             if (bi.mod(bigInteger)==BigInteger.valueOf(0)){return false;}
         }
         return true;
