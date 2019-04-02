@@ -26,8 +26,17 @@ import java.util.Arrays;
 
 public class rotate {
 
+    public static void main(String[] args) {
+        int[] a = {1, 2, 3, 4, 5, 6, 7};
+        int k = 3;
+        rotate ro = new rotate();
+        ro.rotate(a, k);
+        System.out.println(Arrays.toString(a));
+    }
+
     public void rotate(int[] nums, int k) {
         //右移
+        k = k % nums.length;
         for (int i = 0; i < k; i++) {
             rotate_one_num(nums);
         }
@@ -43,32 +52,18 @@ public class rotate {
 
     //leetcode上的最佳解法
     public void rotate2(int[] nums, int k) {
-        if (k > 0) {
-            k = k % nums.length;
-
-            int[] temp = new int[k];
-            int len = nums.length;
-
-            for (int i = 0; i < k; i++) {
-                temp[i] = nums[i + len - k];
-            }
-
-            for (int i = len - k - 1; i >= 0; i--) {
-                nums[i + k] = nums[i];
-            }
-
-
-            for (int i = 0; i < k; i++)
-                nums[i] = temp[i];
-        }
-
+        k %= nums.length;
+        reverse(nums, 0, nums.length - 1);
+        reverse(nums, 0, k - 1);
+        reverse(nums, k, nums.length - 1);
     }
 
-    public static void main(String[] args) {
-        int[] a = {1, 2, 3, 4, 5, 6, 7};
-        int k = 3;
-        rotate ro = new rotate();
-        ro.rotate(a, k);
-        System.out.println(Arrays.toString(a));
+    public void reverse(int[] nums, int l, int r){
+        for(int i = l; l < r && i < r; i++){
+            nums[i] = nums[r] ^ nums[i];
+            nums[r] = nums[r] ^ nums[i];
+            nums[i] = nums[r] ^ nums[i];
+            r--;
+        }
     }
 }

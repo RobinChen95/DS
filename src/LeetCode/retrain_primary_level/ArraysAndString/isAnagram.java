@@ -25,27 +25,23 @@ public class isAnagram {
         char[] t_char = t.toCharArray();
         Arrays.sort(s_char);
         Arrays.sort(t_char);
-        if (Arrays.equals(s_char,t_char))return true;
+        if (Arrays.equals(s_char, t_char)) return true;
         else return false;
     }
 
     //leetcode上面的最佳解法
     public boolean isAnagram(String s, String t) {
-        int[] num = new int[200];
-        if(s.length() != t.length()){
+        // 如果长度不相等，则不可能是异位词
+        if (s.length() != t.length())
             return false;
-        }
-        for(int i = 0; i < s.length(); i++){
-            num[s.charAt(i)]++;
-        }
-        for(int i = 0; i < t.length(); i++){
-            num[t.charAt(i)]--;
-        }
-        for(int temp : num){
-            if(temp != 0){
+        int[] count = new int[128];
+        for (int i = 0; i < s.length(); ++i)
+            count[s.charAt(i)]++;
+        for (int i = 0; i < t.length(); ++i)
+            count[t.charAt(i)]--;
+        for (int i = 0; i < count.length; ++i)
+            if (count[i] != 0)
                 return false;
-            }
-        }
         return true;
     }
 
@@ -53,6 +49,6 @@ public class isAnagram {
         isAnagram ia = new isAnagram();
         String s1 = "natarim";
         String s2 = "tanarim";
-        System.out.println(ia.isAnagram1(s1,s2));
+        System.out.println(ia.isAnagram1(s1, s2));
     }
 }
