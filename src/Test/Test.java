@@ -1,26 +1,10 @@
 package Test;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-
-public class Test implements Runnable {
-
-    int n = 5;
-
-    @Override
-    public void run() {
-        while(n!=0){
-            System.out.println("the Thread never stops!");
-            System.out.println("n:"+n);
-            n--;
-        }
-    }
+public class Test {
 
     public static void main(String[] args) {
-        Test t1 = new Test();
-        t1.run();
-        Test t2 = t1;
-        t2.run();
+        int[] nums = {1,2,3,4};
+        System.out.println(nums[-1]);
     }
+
 }
