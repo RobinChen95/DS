@@ -25,29 +25,27 @@ import java.util.*;
 public class intersect {
 
     public int[] intersect1(int[] nums1, int[] nums2) {
-        long startTime = System.nanoTime();
+        if (nums1.length > nums2.length) {
+            return intersect1(nums2, nums1);
+        }
         Arrays.sort(nums1);
         Arrays.sort(nums2);
-        ArrayList<Integer> al = new ArrayList<>();
-        int i=0;
-        int j=0;
-        while (i<nums1.length&j<nums2.length){
-            if (nums1[i]>nums2[j])j++;
-            else if (nums1[i]<nums2[j])i++;
-            else {
-                al.add(nums1[i]);
+        int nums[] = new int[nums1.length];
+        int len = 0;
+        for (int i = 0, j = 0; i < nums1.length && j < nums2.length; ) {
+            if (nums1[i] == nums2[j]) {
+                nums[len++] = nums1[i];
+                ++i;
+                ++j;
+            } else if (nums1[i] < nums2[j]) {
                 i++;
+            } else {
                 j++;
             }
         }
-        int[] result = new int[al.size()];
-        for (int k = 0; k < al.size(); k++) {
-            result[k]=al.get(k);
-        }
-        long endTime = System.nanoTime();
-        System.out.println("我的执行时间：");
-        System.out.println(endTime-startTime+"ns");
-        return result;
+        int num[] = new int[len];
+        System.arraycopy(nums, 0, num, 0, len);
+        return num;
     }
 
     //进仔的解法
@@ -78,11 +76,9 @@ public class intersect {
 
     //leetcode上的最佳解法，此解法可能不是最佳
     public int[] intersect2(int[] nums1, int[] nums2) {
-        long startTime = System.nanoTime();
         if(nums1.length == 0 || nums2.length == 0)   {
             return new int[0];
         }
-
         int[] ret1 = new int[Math.max(nums1.length, nums2.length)];
         int len1 = 0;
         boolean[] bl1 = new boolean[ret1.length];
@@ -97,14 +93,10 @@ public class intersect {
                 start++;
             }
         }
-
         int[] ret = new int[len1];
         for (int i=0; i<len1; i++) {
             ret[i] = ret1[i];
         }
-        long endTime = System.nanoTime();
-        System.out.println("leetcode的执行时间：");
-        System.out.println(endTime-startTime+"ns");
         return ret;
 
     }
