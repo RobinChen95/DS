@@ -58,6 +58,7 @@ class MyCircularQueue {
      * Get the last item from the queue.
      */
     public int Rear() {
+
         if (isEmpty()) return -1;
         return queue[tail];
     }
